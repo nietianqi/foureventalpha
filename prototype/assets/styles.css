@@ -118,7 +118,7 @@ table { border-collapse: collapse; }
 
 .hero-grid, .banner-grid, .detail-grid, .ranking-panels, .market-grid, .teaching-grid, .education-grid,
 .subscription-grid, .insight-grid, .stats-grid, .board-grid, .board-filters, .valuation-filter-grid,
-.trend-list-grid, .market-workspace, .analysis-grid {
+.trend-list-grid {
   display: grid;
   gap: 18px;
 }
@@ -129,8 +129,6 @@ table { border-collapse: collapse; }
 .market-grid, .teaching-grid, .education-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .subscription-grid, .insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 22px; }
-.market-workspace { grid-template-columns: minmax(0, 7fr) minmax(360px, 5fr); align-items: start; }
-.analysis-grid { grid-template-columns: minmax(0, 2fr) minmax(250px, 1fr); }
 
 .hero-side, .banner-side, .content-stack, .aside-stack, .stock-list, .related-list, .list-bullets, .trend-factor-stack {
   display: grid;
@@ -403,7 +401,7 @@ table { border-collapse: collapse; }
 }
 
 @media (max-width: 1100px) {
-  .hero-grid, .banner-grid, .detail-grid, .ranking-panels, .board-grid, .market-workspace, .analysis-grid { grid-template-columns: 1fr; }
+  .hero-grid, .banner-grid, .detail-grid, .ranking-panels, .board-grid { grid-template-columns: 1fr; }
   .market-grid, .teaching-grid, .education-grid, .stats-grid, .insight-grid, .subscription-grid, .board-filters, .valuation-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

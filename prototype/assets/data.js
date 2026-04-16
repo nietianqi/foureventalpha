@@ -18,6 +18,32 @@ window.prototypeData = {};
     return `stock.html?stock=${stockId}`;
   }
 
+  function valuationUrl(marketId, filters) {
+    const params = new URLSearchParams();
+    const config = filters || {};
+    params.set("market", marketId);
+
+    [
+      ["valPreset", config.preset],
+      ["valBand", config.band],
+      ["valQuality", config.quality],
+      ["valMargin", config.margin],
+      ["valSize", config.size]
+    ].forEach(([key, value]) => {
+      if (value && value !== "all") {
+        params.set(key, value);
+      }
+    });
+
+    return `valuation.html?${params.toString()}`;
+  }
+
+  function trendUrl(marketId) {
+    const params = new URLSearchParams();
+    params.set("market", marketId);
+    return `trend.html?${params.toString()}`;
+  }
+
   function boardUrl(marketId, boardType, filters) {
     const params = new URLSearchParams();
     const prefix = boardType === "avoid" ? "av" : "op";
@@ -50,10 +76,14 @@ window.prototypeData = {};
     return { label, url: boardUrl(marketId, boardType, filters) };
   }
 
+  function analysisLink(label, url, summary) {
+    return { label, url, summary };
+  }
+
   data.site = {
     name: "四大市场股票思路",
     tagLine: "四个市场，四套判断框架",
-    updatedAt: "2026-04-15 21:00 JST",
+    updatedAt: "2026-04-16 09:30 JST",
     note: "以下内容为原型示意数据，用于页面结构与交互演示，不构成任何投资建议。"
   };
 
@@ -69,6 +99,9 @@ window.prototypeData = {};
       fitStyle: "景气切换、国产替代、现金流红利",
       pitfall: "题材末端、低流动性、伪反转",
       intro: "中国市场更适合把政策、景气和兑现顺序拆开看，不能只看估值便宜。",
+      methodSummary: "先看政策是否给方向，再用订单和现金流确认景气，最后判断估值是不是建立在真实修复之上。",
+      valuationFocus: "中国市场先筛政策修复后仍能兑现景气和现金流的公司，便宜必须建立在验证之上。",
+      trendFocus: "趋势不能只看情绪升温，重点看订单、红利资金和扩产节奏是否同步改善。",
       strategyIds: [
         "cn-policy-repair",
         "cn-domestic-substitution",
@@ -83,8 +116,8 @@ window.prototypeData = {};
         "cn-balance-sheet-stress",
         "cn-fad-story"
       ],
-      opportunityStockIds: ["cn-galaxy-energy", "cn-river-grid", "cn-sea-auto"],
-      avoidStockIds: ["cn-orbit-medtech", "cn-morning-chips"],
+      opportunityStockIds: ["cn-sunrise-industrials", "cn-galaxy-energy", "cn-sea-auto", "cn-river-grid"],
+      avoidStockIds: ["cn-orbit-medtech", "cn-morning-chips", "cn-bridge-port"],
       valuationDefaults: {
         preset: "undervalued",
         band: "undervalued",
@@ -94,9 +127,11 @@ window.prototypeData = {};
       },
       trendOverview: "政策修复给了方向，但最终是订单兑现和现金流决定上涨质量。",
       education: [
-        "先判断政策是否提供方向，再判断盈利能否兑现。",
-        "只看便宜容易买到伪反转，必须叠加现金流与订单验证。",
-        "强题材阶段更要用风险标签约束仓位和节奏。"
+        "先判断政策是否只是点火，还是已经把订单和开工拉回真实修复区间。",
+        "再看订单、合同负债和经营现金流是否同步回正，这是区分真修复和伪反转的第一道门槛。",
+        "国产替代和出海制造不能只看题材热度，要同时确认份额提升和毛利率改善。",
+        "高股息和电网、公用事业在补跌阶段承担稳定器角色，不应该和高弹性赛道用同一套节奏判断。",
+        "一旦出现题材末端拥挤或高杠杆扩产，优先把仓位纪律放在赔率判断前面。"
       ]
     },
     us: {
@@ -108,6 +143,9 @@ window.prototypeData = {};
       fitStyle: "成长兑现、自由现金流、趋势延续、价值修复",
       pitfall: "AI 过热、指引下修、利润率未验证",
       intro: "美国市场需要区分叙事驱动和现金流驱动，不能把所有高增速都当作好公司。",
+      methodSummary: "先看收入能不能转成自由现金流，再看利润率和管理层指引是否兑现，最后判断趋势是不是已经过热。",
+      valuationFocus: "美股估值不能离开现金流和指引单看，默认先筛现金流能托底、管理层兑现度高的资产。",
+      trendFocus: "趋势页重点看现金流龙头是否继续领涨，以及 AI 拥挤和利润率验证是否重新失衡。",
       strategyIds: [
         "us-growth-confirmation",
         "us-free-cashflow",
@@ -121,8 +159,8 @@ window.prototypeData = {};
         "us-regulatory-hangover",
         "us-unproven-margin"
       ],
-      opportunityStockIds: ["us-cascade-pay", "us-atlas-medical", "us-summit-energy"],
-      avoidStockIds: ["us-pioneer-cloud", "us-nova-retail"],
+      opportunityStockIds: ["us-cascade-pay", "us-helix-robotics", "us-atlas-medical", "us-summit-energy"],
+      avoidStockIds: ["us-pioneer-cloud", "us-nova-retail", "us-helix-robotics"],
       valuationDefaults: {
         preset: "cashflow",
         band: "all",
@@ -132,9 +170,11 @@ window.prototypeData = {};
       },
       trendOverview: "美股当下更奖励现金流兑现和趋势健康度，而不是单纯更高的收入故事。",
       education: [
-        "先看公司是否把收入转成自由现金流，再谈估值天花板。",
-        "趋势股可以跟，但必须用指引和利润率做止损线。",
-        "当市场只听故事不看现金流时，风险榜要放在机会榜前面。"
+        "先看收入是不是能持续转成自由现金流，美股最贵的资产也逃不开现金流纪律。",
+        "成长兑现不只看营收增速，还要看利润率和管理层指引有没有同步抬高。",
+        "趋势股可以跟，但只能在拥挤度可控、财报兑现和指引都没坏的时候跟。",
+        "价值修复股要看库存、资本纪律和回购，不是看到历史低估值就自动成立。",
+        "当市场重新只听故事不看现金流时，应该先看不能买榜而不是继续加仓热门。"
       ]
     },
     jp: {
@@ -146,6 +186,9 @@ window.prototypeData = {};
       fitStyle: "回购增配、低 PBR 改善、业绩上修、高股息",
       pitfall: "价值陷阱、口惠实不至、汇率顺风反转",
       intro: "日本市场不能只看低估值，更要看治理改善是否真正落到 ROE 和股东回报上。",
+      methodSummary: "先看治理动作是否真实落地，再看 ROE 和 PBR 修复路径，最后确认回购、分红和现金释放是否同步。",
+      valuationFocus: "日股估值修复先看低 PBR 背后的治理改善，再看回购、ROE 和资本开支是否一起支持重估。",
+      trendFocus: "日股趋势更像慢变量，核心不是追热度，而是确认回购兑现、业绩上修和现金释放有没有继续改善。",
       strategyIds: [
         "jp-buyback-rotation",
         "jp-low-pbr-reform",
@@ -159,8 +202,8 @@ window.prototypeData = {};
         "jp-capex-burden",
         "jp-thin-liquidity"
       ],
-      opportunityStockIds: ["jp-sakura-machinery", "jp-koyo-banks", "jp-mirai-rail"],
-      avoidStockIds: ["jp-hinode-logistics", "jp-aoi-electronics"],
+      opportunityStockIds: ["jp-sakura-machinery", "jp-tokai-holdings", "jp-mirai-rail", "jp-koyo-banks"],
+      avoidStockIds: ["jp-hinode-logistics", "jp-aoi-electronics", "jp-tsubasa-food"],
       valuationDefaults: {
         preset: "dividend",
         band: "all",
@@ -170,9 +213,11 @@ window.prototypeData = {};
       },
       trendOverview: "日股的估值修复关键不在低 PBR 本身，而在治理改善是否真的落到回购和 ROE。",
       education: [
-        "先看治理动作是否真实发生，再看低估值有没有修复空间。",
-        "日股高股息并不等于低风险，资本开支和汇率会直接改变判断。",
-        "适合中期持有，但需要用股东回报和业绩上修做筛选。"
+        "先看治理动作有没有真落地，尤其是回购、分红和交叉持股处置，而不是只听管理层表态。",
+        "低 PBR 本身不是理由，必须同时看到 ROE、资产效率和资本配置改善路径。",
+        "业绩上修在日股很重要，但如果现金流被高资本开支锁住，重估速度会明显变慢。",
+        "高股息方向要额外确认股东回报执行力，不能把稳定派息误判成治理改善已经完成。",
+        "汇率顺风会放大利润弹性，但真正值得给估值的，仍然是治理改善和现金释放。"
       ]
     },
     hk: {
@@ -184,6 +229,9 @@ window.prototypeData = {};
       fitStyle: "南向偏好、估值修复、高股息、防守型核心资产",
       pitfall: "流动性折价、政策 Beta 单驱动、高股息不可持续",
       intro: "香港市场更像流动性和资产质量的组合判断，不适合只靠一句政策利好就追涨。",
+      methodSummary: "先看南向资金和流动性，再看资产质量与股息覆盖，最后判断折价修复能不能持续。",
+      valuationFocus: "港股默认先筛南向资金愿意买、资产质量站得住、股息安全或折价修复路径清楚的公司。",
+      trendFocus: "港股趋势页重点看南向回流、股息安全和平台盈利拐点是否同步，而不是单看政策情绪。",
       strategyIds: [
         "hk-southbound-core",
         "hk-valuation-recovery",
@@ -197,8 +245,8 @@ window.prototypeData = {};
         "hk-property-chain-shadow",
         "hk-story-before-profit"
       ],
-      opportunityStockIds: ["hk-pearl-infra", "hk-harbor-finance", "hk-victory-consumer"],
-      avoidStockIds: ["hk-orion-health", "hk-lotus-tech"],
+      opportunityStockIds: ["hk-victory-consumer", "hk-harbor-finance", "hk-pearl-infra", "hk-lotus-tech"],
+      avoidStockIds: ["hk-orion-health", "hk-lotus-tech", "hk-pearl-infra"],
       valuationDefaults: {
         preset: "trend-calm",
         band: "all",
@@ -208,9 +256,11 @@ window.prototypeData = {};
       },
       trendOverview: "港股重估既要看南向资金，也要看股息安全和资产质量能不能同时成立。",
       education: [
-        "先看资金回流和流动性，再谈估值修复能走多远。",
-        "港股高股息需要看分红来源，不然容易掉进收益率陷阱。",
-        "南向偏好是很强的加分项，但不能替代基本面判断。"
+        "先看南向资金和成交结构，港股很多好逻辑最后都输在流动性和承接上。",
+        "估值修复只有在资产质量站住、折价原因被解释清楚时才有持续性。",
+        "高股息要先看分红来源和现金覆盖，收益率越高越要先排除脆弱性。",
+        "平台和互联网修复不能只靠政策 Beta，真正的拐点要看到利润率和经营现金流改善。",
+        "南向偏好是重要加分项，但它只能放大好资产，不能拯救没有兑现的故事。"
       ]
     }
   };
@@ -223,7 +273,11 @@ window.prototypeData = {};
       summary: "政策方向明确、订单边际改善、盈利从底部抬升。",
       fitFor: "希望抓住一到两个季度修复弹性的用户",
       cycle: "1-2 个季度",
-      catalyst: "补贴、设备更新、行业库存拐点"
+      catalyst: "补贴、设备更新、行业库存拐点",
+      coreQuestion: "政策点火后，订单和现金流有没有一起回到真实修复区间？",
+      mustConfirm: "订单增速、合同负债和经营现金流同步改善。",
+      falsePositive: "只看到政策标题和估值反弹，却没有看到真实订单兑现。",
+      sampleStockIds: ["cn-sunrise-industrials", "cn-orbit-medtech"]
     },
     {
       id: "cn-domestic-substitution",
@@ -232,7 +286,11 @@ window.prototypeData = {};
       summary: "订单验证配合份额提升，适合看产业升级而不是纯题材。",
       fitFor: "能接受波动、重视验证节点的成长型用户",
       cycle: "2-4 个季度",
-      catalyst: "验证单落地、国产供应链放量"
+      catalyst: "验证单落地、国产供应链放量",
+      coreQuestion: "份额提升是不是已经体现在真实客户验证和毛利率改善里？",
+      mustConfirm: "客户导入、良率、毛利率与回款节奏一起向好。",
+      falsePositive: "把自主可控主题热度误判成产业兑现已经发生。",
+      sampleStockIds: ["cn-galaxy-energy", "cn-morning-chips"]
     },
     {
       id: "cn-export-upgrade",
@@ -241,7 +299,11 @@ window.prototypeData = {};
       summary: "全球份额扩张配合利润率改善，重点看产品结构升级。",
       fitFor: "偏好多因子验证的中期配置用户",
       cycle: "2-6 个季度",
-      catalyst: "海外订单、渠道扩张、毛利率抬升"
+      catalyst: "海外订单、渠道扩张、毛利率抬升",
+      coreQuestion: "出海逻辑是不是已经从接单故事走到利润结构升级？",
+      mustConfirm: "海外订单、产品升级和净现金状态同时稳住。",
+      falsePositive: "只看出口题材热度，不看客户质量和扩产节奏。",
+      sampleStockIds: ["cn-sea-auto", "cn-galaxy-energy"]
     },
     {
       id: "cn-high-dividend",
@@ -250,7 +312,11 @@ window.prototypeData = {};
       summary: "现金流稳、分红确定、估值不拥挤，适合作为回撤缓冲。",
       fitFor: "偏防守、重视波动控制的用户",
       cycle: "中长期",
-      catalyst: "分红提升、利率下行、防守需求"
+      catalyst: "分红提升、利率下行、防守需求",
+      coreQuestion: "分红来源和现金流覆盖够不够扎实，能不能承担组合稳定器？",
+      mustConfirm: "经营现金流、分红支付率和资本开支都在可控区间。",
+      falsePositive: "只看股息率高，不看债务压力和现金覆盖。",
+      sampleStockIds: ["cn-river-grid", "cn-bridge-port"]
     },
     {
       id: "us-growth-confirmation",
@@ -259,7 +325,11 @@ window.prototypeData = {};
       summary: "增长与利润率同步兑现，市场给高估值但容错率有限。",
       fitFor: "擅长跟踪财报和指引的成长型用户",
       cycle: "1-3 个财报季",
-      catalyst: "财报超预期、客户扩张、价格力"
+      catalyst: "财报超预期、客户扩张、价格力",
+      coreQuestion: "高增长是不是已经同步兑现成利润率和更高质量的指引？",
+      mustConfirm: "收入增速、利润率和下一季指引一起抬升。",
+      falsePositive: "只看高增速，不看指引转弱和现金流缺口。",
+      sampleStockIds: ["us-nova-retail", "us-pioneer-cloud"]
     },
     {
       id: "us-free-cashflow",
@@ -268,7 +338,11 @@ window.prototypeData = {};
       summary: "收入质量高、现金转化强，更适合当核心持仓。",
       fitFor: "偏好确定性与复利的配置型用户",
       cycle: "中长期",
-      catalyst: "费用率改善、回购、现金流超预期"
+      catalyst: "费用率改善、回购、现金流超预期",
+      coreQuestion: "收入是不是已经稳定转成自由现金流和股东回报？",
+      mustConfirm: "自由现金流率、回购执行和净留存同时稳住。",
+      falsePositive: "把一次性降本带来的现金流改善当成长期质量升级。",
+      sampleStockIds: ["us-cascade-pay", "us-atlas-medical"]
     },
     {
       id: "us-trend-following",
@@ -277,7 +351,11 @@ window.prototypeData = {};
       summary: "尊重价格趋势，但必须绑定盈利与订单的继续验证。",
       fitFor: "纪律强、接受止损的趋势型用户",
       cycle: "数周到数月",
-      catalyst: "产业催化、订单连增、强势突破"
+      catalyst: "产业催化、订单连增、强势突破",
+      coreQuestion: "趋势还能不能继续，关键在盈利兑现和拥挤度是否一起健康。",
+      mustConfirm: "新增订单、利润率和拥挤度三者不能失衡。",
+      falsePositive: "把强趋势误判成无脑持有，忽略财报兑现和仓位纪律。",
+      sampleStockIds: ["us-helix-robotics", "us-cascade-pay"]
     },
     {
       id: "us-value-rebound",
@@ -286,7 +364,11 @@ window.prototypeData = {};
       summary: "估值回到历史低位后，等待利润率和资产负债表改善。",
       fitFor: "能忍受等待、偏好赔率的逆向用户",
       cycle: "2-4 个财报季",
-      catalyst: "去库存结束、资本回收、经营重组"
+      catalyst: "去库存结束、资本回收、经营重组",
+      coreQuestion: "低估值背后是不是库存、资本纪律和股东回报已经出现改善？",
+      mustConfirm: "库存周转、现金回收和利润率一起修复。",
+      falsePositive: "把历史低估值直接当成安全边际，忽略基本面尚未拐头。",
+      sampleStockIds: ["us-atlas-medical", "us-summit-energy"]
     },
     {
       id: "jp-buyback-rotation",
@@ -295,7 +377,11 @@ window.prototypeData = {};
       summary: "真实回购配合资本配置优化，是日股估值提升的重要来源。",
       fitFor: "关注治理改善与股东回报的配置型用户",
       cycle: "中期",
-      catalyst: "回购计划、资本政策、股东沟通"
+      catalyst: "回购计划、资本政策、股东沟通",
+      coreQuestion: "回购是不是已经从口头承诺进入真实执行阶段？",
+      mustConfirm: "回购执行节奏、净现金和 ROE 目标一起改善。",
+      falsePositive: "只看董事会表态，不看真实执行比例和资本回收。",
+      sampleStockIds: ["jp-sakura-machinery", "jp-koyo-banks"]
     },
     {
       id: "jp-low-pbr-reform",
@@ -304,7 +390,11 @@ window.prototypeData = {};
       summary: "低估值本身不是理由，改善路径才是定价关键。",
       fitFor: "能辨别价值陷阱的逆向用户",
       cycle: "中期",
-      catalyst: "治理改革、资产处置、ROE 改善"
+      catalyst: "治理改革、资产处置、ROE 改善",
+      coreQuestion: "低 PBR 背后有没有真实的治理改革和 ROE 修复路径？",
+      mustConfirm: "交叉持股处置、资产效率改善和 ROE 目标逐步落地。",
+      falsePositive: "把长期低估值误判成马上重估，忽略治理动作根本没发生。",
+      sampleStockIds: ["jp-tokai-holdings", "jp-hinode-logistics"]
     },
     {
       id: "jp-earnings-upgrade",
@@ -313,7 +403,11 @@ window.prototypeData = {};
       summary: "订单和利润率同时改善，适合业绩驱动而非题材驱动。",
       fitFor: "偏好基本面拐点的中期用户",
       cycle: "1-3 个财报季",
-      catalyst: "订单改善、利润率上修、资本开支见顶"
+      catalyst: "订单改善、利润率上修、资本开支见顶",
+      coreQuestion: "业绩上修是不是建立在订单和现金释放一起改善之上？",
+      mustConfirm: "订单、利润率和资本开支压力不能互相打架。",
+      falsePositive: "只看利润表上修，不看现金流依旧被 capex 锁死。",
+      sampleStockIds: ["jp-mirai-rail", "jp-aoi-electronics"]
     },
     {
       id: "jp-high-dividend",
@@ -322,7 +416,11 @@ window.prototypeData = {};
       summary: "股东回报稳定、估值不贵，适合在震荡期承担防守角色。",
       fitFor: "偏好收益和稳定性的配置型用户",
       cycle: "中长期",
-      catalyst: "分红政策、资本优化、避险资金回流"
+      catalyst: "分红政策、资本优化、避险资金回流",
+      coreQuestion: "高股息是不是伴随回购、资本优化和稳健现金流，而不是停留在旧分红政策？",
+      mustConfirm: "分红连续性、资本充足率和回购动作都有证据。",
+      falsePositive: "把稳定派息当作治理已经完成，忽略股东回报执行力不足。",
+      sampleStockIds: ["jp-koyo-banks", "jp-tsubasa-food"]
     },
     {
       id: "hk-southbound-core",
@@ -331,7 +429,11 @@ window.prototypeData = {};
       summary: "资金偏好明确、流动性改善同步出现时，港股核心资产更容易修复。",
       fitFor: "看重资金方向和资产质量的用户",
       cycle: "1-2 个季度",
-      catalyst: "南向净流入、消费修复、盈利稳定"
+      catalyst: "南向净流入、消费修复、盈利稳定",
+      coreQuestion: "南向资金回流是不是买在资产质量更稳、盈利更清楚的核心资产上？",
+      mustConfirm: "南向净买入、经营数据和流动性一起改善。",
+      falsePositive: "只看南向流入 headline，不看买入的资产质量和盈利兑现。",
+      sampleStockIds: ["hk-victory-consumer", "hk-pearl-infra"]
     },
     {
       id: "hk-valuation-recovery",
@@ -340,7 +442,11 @@ window.prototypeData = {};
       summary: "估值折价收敛前提是流动性改善与盈利可解释。",
       fitFor: "能忍受震荡、等待赔率兑现的逆向用户",
       cycle: "数月",
-      catalyst: "风险偏好修复、资金回流、资产质量改善"
+      catalyst: "风险偏好修复、资金回流、资产质量改善",
+      coreQuestion: "港股折价是不是因为流动性，而不是资产质量已经坏掉？",
+      mustConfirm: "南向资金、资产质量和股东回报至少有两项同步改善。",
+      falsePositive: "只因便宜就下注，忽略折价真正来源还没变化。",
+      sampleStockIds: ["hk-harbor-finance", "hk-bauhinia-utilities"]
     },
     {
       id: "hk-high-dividend",
@@ -349,7 +455,11 @@ window.prototypeData = {};
       summary: "高股息是防守手段，不是忽略基本面的理由。",
       fitFor: "追求收益率但重视资产质量的用户",
       cycle: "中长期",
-      catalyst: "股息率稳定、经营现金流改善"
+      catalyst: "股息率稳定、经营现金流改善",
+      coreQuestion: "股息是不是来自真实现金流覆盖，而不是一次性高派息或脆弱资产负债表？",
+      mustConfirm: "经营现金流、股息覆盖和资本开支都在舒服区间。",
+      falsePositive: "把高收益率当成低风险，忽略分红来源已经在恶化。",
+      sampleStockIds: ["hk-pearl-infra", "hk-bauhinia-utilities"]
     },
     {
       id: "hk-platform-turnaround",
@@ -358,35 +468,290 @@ window.prototypeData = {};
       summary: "平台型资产重估必须依赖现金流和监管预期双改善。",
       fitFor: "看重现金流拐点的成长价值用户",
       cycle: "2-4 个财报季",
-      catalyst: "利润率改善、回购、监管预期稳定"
+      catalyst: "利润率改善、回购、监管预期稳定",
+      coreQuestion: "平台修复是不是已经看到利润率和经营现金流的实质拐点？",
+      mustConfirm: "亏损收窄、经营现金流改善和监管预期一起稳定。",
+      falsePositive: "只因政策情绪回暖就给远端故事更高估值。",
+      sampleStockIds: ["hk-lotus-tech", "hk-orion-health"]
     }
   ];
 
   data.avoidSceneCards = [
-    { id: "cn-crowded-theme", market: "cn", name: "情绪末端追高", level: "高", signal: "换手和成交额突然失真放大，情绪开始盖过基本面。", summary: "热点拥挤时，风险来自接力位置而不是公司本身。", substitute: "回到现金流更清楚、验证更充分的方向。" },
-    { id: "cn-low-float", market: "cn", name: "低流动性拉升", level: "高", signal: "小票快速拉升但机构承接不足，成交结构失衡。", summary: "流动性错觉会让用户误把脉冲行情当成趋势。", substitute: "切回中大市值、可持续交易的验证样本。" },
-    { id: "cn-fake-turnaround", market: "cn", name: "伪反转低估", level: "中", signal: "估值看起来很便宜，但订单和现金流并未同步修复。", summary: "只看估值容易买到没有兑现路径的便宜货。", substitute: "等景气与现金流一起回到正向区间。" },
-    { id: "cn-major-selloff", market: "cn", name: "补跌后的防守切换", level: "低", signal: "高波动方向退潮后，防守资金重新回到红利与公用事业。", summary: "不是所有回撤都该抄底，先看谁能承担组合稳定器。", substitute: "优先选择红利、电网、公用事业等防守资产。" },
-    { id: "cn-balance-sheet-stress", market: "cn", name: "高杠杆扩产", level: "高", signal: "景气还没兑现，资本开支和负债表先恶化。", summary: "扩产故事如果早于订单兑现，股价弹性会变成财务风险。", substitute: "选择现金流更稳、扩产节奏更克制的样本。" },
-    { id: "cn-fad-story", market: "cn", name: "故事先行兑现落后", level: "高", signal: "管理层叙事很满，但订单、产品和客户验证没有跟上。", summary: "最危险的不是贵，而是验证永远晚一步。", substitute: "回到已经出现订单或现金流证据的赛道。" },
-    { id: "us-guidance-cut", market: "us", name: "指引下修前夜", level: "高", signal: "管理层口径转保守，估值却仍停留在高成长假设。", summary: "财报下修会让高估值与基本面同时受压。", substitute: "优先看自由现金流更稳的龙头。" },
-    { id: "us-cash-burn", market: "us", name: "现金流失速", level: "高", signal: "收入增长还在，但现金转化和回款开始变弱。", summary: "当现金流跟不上叙事，估值溢价会迅速收缩。", substitute: "切回有回购和现金回流支撑的标的。" },
-    { id: "us-ai-crowding", market: "us", name: "AI 拥挤交易", level: "中", signal: "趋势很强，但拥挤度已经快过利润兑现速度。", summary: "方向未必错，错的是在市场最热的时候追最拥挤的位置。", substitute: "看还没被过度拥挤、但现金流已改善的次主线。" },
-    { id: "us-regulatory-hangover", market: "us", name: "监管余波", level: "中", signal: "商业模式没坏，但监管不确定性拉长估值修复时间。", summary: "赔率可以存在，但节奏必须更保守。", substitute: "优先看已经跨过监管窗口的行业龙头。" },
-    { id: "us-unproven-margin", market: "us", name: "利润率未验证", level: "中", signal: "收入继续增长，但利润率改善慢于市场预期。", summary: "美国市场会给成长溢价，但不会一直容忍利润率拖后腿。", substitute: "等利润率确认后再提高仓位。" },
-    { id: "jp-value-trap", market: "jp", name: "价值陷阱", level: "高", signal: "低估值长期存在，但治理和资本效率始终没有改善。", summary: "日股里最危险的是把长期便宜当成马上重估。", substitute: "回到回购、ROE 改善已经落地的公司。" },
-    { id: "jp-weak-shareholder-return", market: "jp", name: "股东回报空转", level: "中", signal: "口头承诺回购分红，但实际执行节奏弱于预期。", summary: "治理改善只要少一步落实，估值修复就会慢很多。", substitute: "优先看已经执行回购和派息提升的样本。" },
-    { id: "jp-export-fx-reversal", market: "jp", name: "汇率顺风反转", level: "中", signal: "盈利改善更多依赖汇率，而非产品或订单本身。", summary: "一旦汇率风向变掉，股价弹性就会被快速回吐。", substitute: "看靠资本效率或回购改善驱动的公司。" },
-    { id: "jp-capex-burden", market: "jp", name: "资本开支负担", level: "中", signal: "业绩上修成立，但现金流被高资本开支锁住。", summary: "日股里不只是利润重要，现金释放节奏同样决定重估速度。", substitute: "优先看资本开支高峰已过的公司。" },
-    { id: "jp-thin-liquidity", market: "jp", name: "小票流动性不足", level: "高", signal: "估值很低，但成交和持仓结构不支持机构参与。", summary: "流动性不足会让看起来很便宜的股票变成难参与的陷阱。", substitute: "选择中大盘且治理改善明确的标的。" },
-    { id: "hk-liquidity-discount", market: "hk", name: "流动性折价", level: "高", signal: "基本面并不差，但资金承接不足导致折价长期存在。", summary: "港股很多好公司输在流动性，不是输在逻辑。", substitute: "优先看南向资金偏好更强的核心资产。" },
-    { id: "hk-policy-beta-only", market: "hk", name: "只剩政策 Beta", level: "中", signal: "上涨更多靠政策预期，经营兑现跟不上。", summary: "政策利好可以点火，但不能独自支撑估值修复。", substitute: "配合盈利修复和资金流入一起看。" },
-    { id: "hk-dividend-fragile", market: "hk", name: "高股息脆弱", level: "中", signal: "账面股息率很高，但分红来源和现金覆盖不足。", summary: "收益率高不等于可持续，港股尤其要看现金分红质量。", substitute: "切回现金流覆盖更强的高股息资产。" },
-    { id: "hk-property-chain-shadow", market: "hk", name: "地产链阴影", level: "高", signal: "资产质量表面稳定，但地产链拖累仍未出清。", summary: "港股资产端风险一旦暴露，估值修复会被迫中断。", substitute: "优先看地产敞口更低的防守资产。" },
-    { id: "hk-story-before-profit", market: "hk", name: "故事先于盈利", level: "高", signal: "平台故事足够大，但利润和现金流兑现仍然很远。", summary: "在港股环境里，故事能抬估值，但很难长期托住估值。", substitute: "等待利润率和经营现金流先出现改善。" }
+    {
+      id: "cn-crowded-theme",
+      market: "cn",
+      name: "情绪末端追高",
+      level: "高",
+      signal: "换手和成交额突然失真放大，情绪开始盖过基本面。",
+      summary: "热点拥挤时，风险来自接力位置而不是公司本身。",
+      whyDangerous: "中国市场的高弹性方向一旦进入情绪加速，回撤通常先伤节奏、后伤逻辑。",
+      reentrySignal: "等成交结构和换手率回到正常区间，再看订单和现金流验证有没有继续。",
+      substitute: "回到现金流更清楚、验证更充分的方向。",
+      sampleStockIds: ["cn-galaxy-energy", "cn-morning-chips"]
+    },
+    {
+      id: "cn-low-float",
+      market: "cn",
+      name: "低流动性拉升",
+      level: "高",
+      signal: "小票快速拉升但机构承接不足，成交结构失衡。",
+      summary: "流动性错觉会让用户误把脉冲行情当成趋势。",
+      whyDangerous: "低流动性小票在验证稍慢时会把正常波动放大成趋势破坏。",
+      reentrySignal: "等流动性改善、机构承接出现，再回看验证节点是否同步推进。",
+      substitute: "切回中大市值、可持续交易的验证样本。",
+      sampleStockIds: ["cn-morning-chips"]
+    },
+    {
+      id: "cn-fake-turnaround",
+      market: "cn",
+      name: "伪反转低估",
+      level: "中",
+      signal: "估值看起来很便宜，但订单和现金流并未同步修复。",
+      summary: "只看估值容易买到没有兑现路径的便宜货。",
+      whyDangerous: "在中国市场，便宜如果没有景气和现金流佐证，很容易只是旧问题暂时不被讨论。",
+      reentrySignal: "至少看到订单、合同负债或经营现金流有两项回到正向区间。",
+      substitute: "等景气与现金流一起回到正向区间。",
+      sampleStockIds: ["cn-orbit-medtech", "cn-bridge-port"]
+    },
+    {
+      id: "cn-major-selloff",
+      market: "cn",
+      name: "补跌后的防守切换",
+      level: "低",
+      signal: "高波动方向退潮后，防守资金重新回到红利与公用事业。",
+      summary: "不是所有回撤都该抄底，先看谁能承担组合稳定器。",
+      whyDangerous: "把所有补跌都当抄底机会，会忽略市场可能已经进入防守资金主导阶段。",
+      reentrySignal: "等高 Beta 方向重新出现订单验证，再考虑从防守仓位切回弹性方向。",
+      substitute: "优先选择红利、电网、公用事业等防守资产。",
+      sampleStockIds: ["cn-river-grid", "cn-bridge-port"]
+    },
+    {
+      id: "cn-balance-sheet-stress",
+      market: "cn",
+      name: "高杠杆扩产",
+      level: "高",
+      signal: "景气还没兑现，资本开支和负债表先恶化。",
+      summary: "扩产故事如果早于订单兑现，股价弹性会变成财务风险。",
+      whyDangerous: "中国制造链最常见的误判，是把扩产决心当成需求已经兑现。",
+      reentrySignal: "等扩产节奏放缓、净现金回升或新产能订单验证更清楚时再重看。",
+      substitute: "选择现金流更稳、扩产节奏更克制的样本。",
+      sampleStockIds: ["cn-sea-auto", "cn-bridge-port"]
+    },
+    {
+      id: "cn-fad-story",
+      market: "cn",
+      name: "故事先行兑现落后",
+      level: "高",
+      signal: "管理层叙事很满，但订单、产品和客户验证没有跟上。",
+      summary: "最危险的不是贵，而是验证永远晚一步。",
+      whyDangerous: "当故事先行、兑现落后时，任何催化都会先推高预期，再放大失望。",
+      reentrySignal: "至少等产品验证、客户导入或真实回款出现一项明确证据。",
+      substitute: "回到已经出现订单或现金流证据的赛道。",
+      sampleStockIds: ["cn-orbit-medtech", "cn-morning-chips"]
+    },
+    {
+      id: "us-guidance-cut",
+      market: "us",
+      name: "指引下修前夜",
+      level: "高",
+      signal: "管理层口径转保守，估值却仍停留在高成长假设。",
+      summary: "财报下修会让高估值与基本面同时受压。",
+      whyDangerous: "美股高估值最怕的不是坏故事，而是管理层亲自降低未来预期。",
+      reentrySignal: "等指引下修落地后，观察估值是否回到与现金流和利润率更匹配的区间。",
+      substitute: "优先看自由现金流更稳的龙头。",
+      sampleStockIds: ["us-pioneer-cloud", "us-nova-retail"]
+    },
+    {
+      id: "us-cash-burn",
+      market: "us",
+      name: "现金流失速",
+      level: "高",
+      signal: "收入增长还在，但现金转化和回款开始变弱。",
+      summary: "当现金流跟不上叙事，估值溢价会迅速收缩。",
+      whyDangerous: "美股最终是现金流市场，一旦 burn rate 失控，成长故事会很快失去溢价。",
+      reentrySignal: "等自由现金流转正或营销效率、回款周期明显改善后再提高关注度。",
+      substitute: "切回有回购和现金回流支撑的标的。",
+      sampleStockIds: ["us-nova-retail", "us-pioneer-cloud"]
+    },
+    {
+      id: "us-ai-crowding",
+      market: "us",
+      name: "AI 拥挤交易",
+      level: "中",
+      signal: "趋势很强，但拥挤度已经快过利润兑现速度。",
+      summary: "方向未必错，错的是在市场最热的时候追最拥挤的位置。",
+      whyDangerous: "当拥挤度跑在盈利兑现前面时，市场会把正常波动放大成估值重定价。",
+      reentrySignal: "等下一轮财报确认利润率，或拥挤度回落后趋势依旧健康再重看。",
+      substitute: "看还没被过度拥挤、但现金流已改善的次主线。",
+      sampleStockIds: ["us-helix-robotics"]
+    },
+    {
+      id: "us-regulatory-hangover",
+      market: "us",
+      name: "监管余波",
+      level: "中",
+      signal: "商业模式没坏，但监管不确定性拉长估值修复时间。",
+      summary: "赔率可以存在，但节奏必须更保守。",
+      whyDangerous: "监管余波不会立刻毁掉公司，但会持续压制估值上限和修复速度。",
+      reentrySignal: "等监管窗口更清楚、风险从业务变量降为估值折价项时再重看。",
+      substitute: "优先看已经跨过监管窗口的行业龙头。",
+      sampleStockIds: ["us-cascade-pay", "us-atlas-medical"]
+    },
+    {
+      id: "us-unproven-margin",
+      market: "us",
+      name: "利润率未验证",
+      level: "中",
+      signal: "收入继续增长，但利润率改善慢于市场预期。",
+      summary: "美国市场会给成长溢价，但不会一直容忍利润率拖后腿。",
+      whyDangerous: "在美股里，收入增长如果没能转成利润率，趋势和估值都会变脆弱。",
+      reentrySignal: "等毛利率、经营利润率和管理层口径连续两个节点改善再上仓位。",
+      substitute: "等利润率确认后再提高仓位。",
+      sampleStockIds: ["us-summit-energy", "us-helix-robotics"]
+    },
+    {
+      id: "jp-value-trap",
+      market: "jp",
+      name: "价值陷阱",
+      level: "高",
+      signal: "低估值长期存在，但治理和资本效率始终没有改善。",
+      summary: "日股里最危险的是把长期便宜当成马上重估。",
+      whyDangerous: "日股低估值如果没有治理改革支撑，会长期停留在便宜但不涨的状态。",
+      reentrySignal: "等交叉持股处置、资产出售或 ROE 指引出现实质动作后再重看。",
+      substitute: "回到回购、ROE 改善已经落地的公司。",
+      sampleStockIds: ["jp-hinode-logistics", "jp-tsubasa-food"]
+    },
+    {
+      id: "jp-weak-shareholder-return",
+      market: "jp",
+      name: "股东回报空转",
+      level: "中",
+      signal: "口头承诺回购分红，但实际执行节奏弱于预期。",
+      summary: "治理改善只要少一步落实，估值修复就会慢很多。",
+      whyDangerous: "日股治理改善非常依赖执行，承诺和兑现之间少一步，估值就会重新回到旧框架。",
+      reentrySignal: "等回购、分红或资本配置动作真正出现在执行层后再提高权重。",
+      substitute: "优先看已经执行回购和派息提升的样本。",
+      sampleStockIds: ["jp-sakura-machinery", "jp-koyo-banks"]
+    },
+    {
+      id: "jp-export-fx-reversal",
+      market: "jp",
+      name: "汇率顺风反转",
+      level: "中",
+      signal: "盈利改善更多依赖汇率，而非产品或订单本身。",
+      summary: "一旦汇率风向变掉，股价弹性就会被快速回吐。",
+      whyDangerous: "汇率驱动的利润弹性在日股里来得快，也会去得更快。",
+      reentrySignal: "等经营改善来源更多回到产品升级和订单改善，而不是只靠汇率顺风。",
+      substitute: "看靠资本效率或回购改善驱动的公司。",
+      sampleStockIds: ["jp-aoi-electronics"]
+    },
+    {
+      id: "jp-capex-burden",
+      market: "jp",
+      name: "资本开支负担",
+      level: "中",
+      signal: "业绩上修成立，但现金流被高资本开支锁住。",
+      summary: "日股里不只是利润重要，现金释放节奏同样决定重估速度。",
+      whyDangerous: "如果 capex 长期高位，利润表改善也可能迟迟无法转成现金流修复。",
+      reentrySignal: "等资本开支见顶、自由现金流改善后再提高对重估的信心。",
+      substitute: "优先看资本开支高峰已过的公司。",
+      sampleStockIds: ["jp-mirai-rail", "jp-aoi-electronics"]
+    },
+    {
+      id: "jp-thin-liquidity",
+      market: "jp",
+      name: "小票流动性不足",
+      level: "高",
+      signal: "估值很低，但成交和持仓结构不支持机构参与。",
+      summary: "流动性不足会让看起来很便宜的股票变成难参与的陷阱。",
+      whyDangerous: "流动性不足会让日股小票的估值修复几乎无法被机构资金承接。",
+      reentrySignal: "等成交额、持仓结构或治理改善让中型资金也能参与时再重看。",
+      substitute: "选择中大盘且治理改善明确的标的。",
+      sampleStockIds: ["jp-hinode-logistics"]
+    },
+    {
+      id: "hk-liquidity-discount",
+      market: "hk",
+      name: "流动性折价",
+      level: "高",
+      signal: "基本面并不差，但资金承接不足导致折价长期存在。",
+      summary: "港股很多好公司输在流动性，不是输在逻辑。",
+      whyDangerous: "港股好资产如果没有流动性承接，折价会比基本面改善持续更久。",
+      reentrySignal: "等南向回流、成交改善和股东回报一起出现，再看折价是否值得收敛。",
+      substitute: "优先看南向资金偏好更强的核心资产。",
+      sampleStockIds: ["hk-harbor-finance", "hk-victory-consumer"]
+    },
+    {
+      id: "hk-policy-beta-only",
+      market: "hk",
+      name: "只剩政策 Beta",
+      level: "中",
+      signal: "上涨更多靠政策预期，经营兑现跟不上。",
+      summary: "政策利好可以点火，但不能独自支撑估值修复。",
+      whyDangerous: "港股里政策情绪能带来快反弹，但没有经营数据承接时回撤同样很快。",
+      reentrySignal: "等盈利数据、同店或现金流至少出现一项跟进，再提高信心。",
+      substitute: "配合盈利修复和资金流入一起看。",
+      sampleStockIds: ["hk-victory-consumer", "hk-lotus-tech"]
+    },
+    {
+      id: "hk-dividend-fragile",
+      market: "hk",
+      name: "高股息脆弱",
+      level: "中",
+      signal: "账面股息率很高，但分红来源和现金覆盖不足。",
+      summary: "收益率高不等于可持续，港股尤其要看现金分红质量。",
+      whyDangerous: "港股高股息最容易误伤在分红来源不稳、资本开支压力偏高的阶段。",
+      reentrySignal: "等经营现金流覆盖和派息稳定性重新被确认，再回到高股息框架。",
+      substitute: "切回现金流覆盖更强的高股息资产。",
+      sampleStockIds: ["hk-pearl-infra", "hk-bauhinia-utilities"]
+    },
+    {
+      id: "hk-property-chain-shadow",
+      market: "hk",
+      name: "地产链阴影",
+      level: "高",
+      signal: "资产质量表面稳定，但地产链拖累仍未出清。",
+      summary: "港股资产端风险一旦暴露，估值修复会被迫中断。",
+      whyDangerous: "地产链残余风险会把原本看似稳健的资产质量重新拖回折价状态。",
+      reentrySignal: "等地产相关敞口下降、资产减值压力出清后再重看修复节奏。",
+      substitute: "优先看地产敞口更低的防守资产。",
+      sampleStockIds: ["hk-harbor-finance"]
+    },
+    {
+      id: "hk-story-before-profit",
+      market: "hk",
+      name: "故事先于盈利",
+      level: "高",
+      signal: "平台故事足够大，但利润和现金流兑现仍然很远。",
+      summary: "在港股环境里，故事能抬估值，但很难长期托住估值。",
+      whyDangerous: "港股对远端故事容忍度有限，只要利润率和现金流迟迟不落地，重估很难持续。",
+      reentrySignal: "等亏损收窄、经营现金流改善或回购动作真正出现后再提高关注。",
+      substitute: "等待利润率和经营现金流先出现改善。",
+      sampleStockIds: ["hk-orion-health", "hk-lotus-tech"]
+    }
   ];
 
   const stockSeeds = [
+    {
+      id: "cn-sunrise-industrials",
+      symbol: "002947",
+      name: "晨升工控",
+      market: "cn",
+      industry: "工业自动化",
+      price: "21.80",
+      marketCap: "194 亿",
+      liquidity: "中高",
+      strategyId: "cn-policy-repair",
+      primarySceneId: "cn-fake-turnaround",
+      riskLevel: "中",
+      detail: {
+        conclusion: { state: "关注", risk: "中", cycle: "2-3 个季度", summary: "设备更新与工业改造订单已经开始兑现，是中国市场里少见先有政策、再有订单、最后看到现金流改善的修复样本。" },
+        thesis: ["设备更新政策落地后，新签订单和合同负债连续两个季度抬升，修复不再停留在口径层面。", "工业自动化项目开始贡献更高毛利率，利润改善来自产品结构升级而不是单纯压费用。", "经营现金流回正后，估值修复才真正有了底，这类样本更适合顺着验证走。"],
+        avoid: { sceneIds: ["cn-fake-turnaround", "cn-balance-sheet-stress"], tags: ["政策修复", "现金流验证"], reason: "如果订单兑现停在一次性招标、现金流没有继续改善，政策修复很容易重新退回成伪反转。"},
+        metrics: [metric("设备更新订单", "+23%", "政策转订单"), metric("合同负债", "+18%", "验证修复斜率"), metric("经营现金流", "连续转正", "质量确认"), metric("风险分", "46/100", "仍需防扩产过快")],
+        alternatives: [alternative("cn-galaxy-energy", "若更偏成长弹性，可以切向订单验证更快的储能升级方向。")]
+      }
+    },
     {
       id: "cn-galaxy-energy",
       symbol: "688712",
@@ -628,6 +993,26 @@ window.prototypeData = {};
       }
     }
     ,
+    {
+      id: "jp-tokai-holdings",
+      symbol: "8036",
+      name: "东海控股",
+      market: "jp",
+      industry: "综合控股",
+      price: "JPY 1,860",
+      marketCap: "3,240 亿日元",
+      liquidity: "中高",
+      strategyId: "jp-low-pbr-reform",
+      primarySceneId: "jp-value-trap",
+      riskLevel: "低",
+      detail: {
+        conclusion: { state: "关注", risk: "低", cycle: "中期", summary: "低 PBR 不再只是静态便宜，交叉持股处置、回购和 ROE 目标一起出现后，重估路径开始变清楚。" },
+        thesis: ["管理层公布了交叉持股压降和非核心资产处置节奏，治理改善第一次有了可追踪时间表。", "回购与股息提升同步推进，让低 PBR 修复不再只靠外资情绪。", "ROE 目标抬升后，市场开始把它从普通便宜股重定价为治理改善样本。"],
+        avoid: { sceneIds: ["jp-value-trap", "jp-weak-shareholder-return"], tags: ["低 PBR 改善", "治理兑现"], reason: "如果资产处置和回购执行弱于承诺，低估值会重新退回成长期价值陷阱。" },
+        metrics: [metric("PBR", "0.74x", "仍处低估区"), metric("ROE 目标", "8.5%", "修复路径明确"), metric("交叉持股处置", "已启动", "治理动作落地"), metric("风险分", "35/100", "关注执行节奏")],
+        alternatives: [alternative("jp-sakura-machinery", "若更想要回购兑现更直观的工业样本，可切回樱桥机械。")]
+      }
+    },
     {
       id: "jp-sakura-machinery",
       symbol: "6324",
@@ -901,6 +1286,10 @@ window.prototypeData = {};
               rankingLink(`${market.name}机会榜`, item.market, "opportunity"),
               rankingLink(`${market.name}不能买榜`, item.market, "avoid", { scene: item.detail.avoid.sceneIds[0] })
             ],
+            analysis: [
+              analysisLink(`${market.name}合理估值页`, valuationUrl(item.market, market.valuationDefaults), "查看该市场独立估值工作台与筛选结果。"),
+              analysisLink(`${market.name}趋势页`, trendUrl(item.market), "查看该市场趋势温度、三因子和跟踪样本。")
+            ],
             alternatives: item.detail.alternatives.map((entry) => ({
               label: summaryById[entry.stockId].name,
               url: stockUrl(entry.stockId),
@@ -953,24 +1342,40 @@ window.prototypeData = {};
   addRanking("av-01", "avoid", "cn-orbit-medtech", "cn-fad-story", 90, "故事热度明显高于订单与产品验证，是典型伪创新风险样本。", "先回避，等验证而不是等情绪。");
   addRanking("av-02", "avoid", "cn-morning-chips", "cn-low-float", 74, "技术路线没坏，但小票流动性和高位换手让买点过于考验节奏。", "不是方向错，而是位置太拥挤。");
   addRanking("av-03", "avoid", "cn-galaxy-energy", "cn-crowded-theme", 66, "即使是好公司，情绪末端也可能把交易从成长验证变成高位接力。", "看对方向，也要避开错误时点。");
+  addRanking("op-13", "opportunity", "cn-sunrise-industrials", "cn-fake-turnaround", 85, "政策修复已经走到订单、合同负债和现金流同步验证阶段，属于中国市场里少见的真修复样本。", "先看设备更新兑现，再看现金流能否继续抬升。");
+  addRanking("op-14", "opportunity", "cn-bridge-port", "cn-major-selloff", 71, "补跌后的红利资产里，它更像观察型收益来源，适合放进防守切换清单而不是弹性清单。", "重点盯债务与资本开支，确认红利逻辑没有被侵蚀。");
+  addRanking("av-13", "avoid", "cn-bridge-port", "cn-fake-turnaround", 68, "估值不贵不代表已经进入安全区，债务与资本开支如果先抬头，红利会重新变脆弱。", "先确认吞吐量和现金流修复，再谈高股息。");
+  addRanking("av-14", "avoid", "cn-sea-auto", "cn-balance-sheet-stress", 64, "出海逻辑没坏，但扩产节奏一旦快过订单兑现，资产负债表会先暴露压力。", "看对方向，也要躲开高杠杆扩产时点。");
   addRanking("op-04", "opportunity", "us-cascade-pay", "us-regulatory-hangover", 91, "现金流和回购一起改善，使它在美国市场里兼具成长和防守。", "适合中长期跟踪。");
   addRanking("op-05", "opportunity", "us-atlas-medical", "us-regulatory-hangover", 84, "去库存见底后，医疗设备龙头的价值修复赔率开始变得更清楚。", "低拥挤、低估值，是更舒服的美股样本。");
   addRanking("op-06", "opportunity", "us-summit-energy", "us-unproven-margin", 78, "能源服务的现金回收和股东回报一起改善，适合做价值修复观察。", "看利润率，也看资本纪律。");
   addRanking("av-04", "avoid", "us-pioneer-cloud", "us-guidance-cut", 93, "高估值叠加指引转弱，财报前后容易遭遇双杀。", "等下修完成再看也不迟。");
   addRanking("av-05", "avoid", "us-nova-retail", "us-cash-burn", 72, "增长仍在，但现金流没有跟上，市场不会长期为故事买单。", "先看现金流拐点，再谈仓位。");
   addRanking("av-06", "avoid", "us-helix-robotics", "us-ai-crowding", 70, "工业 AI 趋势很强，但拥挤交易本身已经成为主要风险。", "不是方向错，而是位置太晚。");
+  addRanking("op-15", "opportunity", "us-nova-retail", "us-cash-burn", 75, "活跃用户和营销效率都在改善，它是美股成长里少数开始接近现金流拐点的二线观察样本。", "适合跟踪位，不适合把它当成高确信度成长龙头。");
+  addRanking("op-16", "opportunity", "us-helix-robotics", "us-ai-crowding", 80, "工业 AI 订单和订阅收入继续增强，趋势延续仍成立，但前提是利润率验证别掉队。", "跟趋势同时盯利润率，不追最热位置。");
+  addRanking("av-15", "avoid", "us-summit-energy", "us-unproven-margin", 67, "价值修复成立不代表可以忽略利润率兑现，一旦修复慢于预期，市场会先压节奏。", "低估值不是免死金牌，仍要盯利润率。");
+  addRanking("av-16", "avoid", "us-atlas-medical", "us-regulatory-hangover", 63, "基本面修复没坏，但监管窗口如果被继续拉长，便宜也可能便宜更久。", "赔率在，但节奏仍应保守。");
   addRanking("op-07", "opportunity", "jp-sakura-machinery", "jp-weak-shareholder-return", 86, "回购和资本效率改善都已落地，是日股治理改善的标准样本。", "适合作为日股核心持仓候选。");
   addRanking("op-08", "opportunity", "jp-koyo-banks", "jp-weak-shareholder-return", 83, "高股息和回购同时推进，让低估值修复更有抓手。", "适合稳态配置。");
   addRanking("op-09", "opportunity", "jp-mirai-rail", "jp-capex-burden", 74, "客流修复和利润率改善都在进行，但更适合带着现金流视角观察。", "上修成立，节奏仍要克制。");
   addRanking("av-07", "avoid", "jp-hinode-logistics", "jp-thin-liquidity", 85, "低估值没有治理改善配合，小票流动性又差，容易成为价值陷阱。", "日股里尤其要警惕看起来很便宜的小票。");
   addRanking("av-08", "avoid", "jp-aoi-electronics", "jp-export-fx-reversal", 69, "盈利改善里汇率成分偏高，基本面质量还不够让人完全放心。", "等经营改善更扎实再看。");
   addRanking("av-09", "avoid", "jp-mirai-rail", "jp-capex-burden", 65, "资本开支过高时，业绩上修也不足以支撑立刻重估。", "适合持续观察，不适合高确信度下注。");
+  addRanking("op-17", "opportunity", "jp-tokai-holdings", "jp-value-trap", 84, "低 PBR 修复终于有了治理动作、ROE 目标和回购执行三重支撑，不再只是静态便宜。", "先看治理兑现，再看折价是否继续收敛。");
+  addRanking("op-18", "opportunity", "jp-aoi-electronics", "jp-export-fx-reversal", 72, "订单改善正在把汇率顺风转成经营改善，但它更适合业绩上修观察，而不是直接给高溢价。", "盯利润率和订单质量，不提前透支重估。");
+  addRanking("av-17", "avoid", "jp-tsubasa-food", "jp-value-trap", 66, "高股息如果没有经营提效配合，最终还是会留在低估值区间里慢慢消耗时间。", "先等效率改善，再把它从防守观察升到机会清单。");
+  addRanking("av-18", "avoid", "jp-koyo-banks", "jp-weak-shareholder-return", 62, "哪怕是优质高股息样本，只要回购和资本优化节奏放慢，治理改善逻辑也会被重新打折。", "先跟踪执行，再决定是否加仓。");
   addRanking("op-10", "opportunity", "hk-pearl-infra", "hk-dividend-fragile", 84, "现金流支持分红，叠加南向偏好回升，是港股里更稳的底仓方向。", "偏防守，适合稳住波动。");
   addRanking("op-11", "opportunity", "hk-harbor-finance", "hk-liquidity-discount", 82, "低估值、股东回报和资金回流开始同向，是港股估值修复更顺的样本。", "看南向回流，也看资产质量。");
   addRanking("op-12", "opportunity", "hk-victory-consumer", "hk-policy-beta-only", 73, "资金偏好和消费修复都在，但需要继续验证盈利恢复斜率。", "更像观察名单，而非无脑买入名单。");
   addRanking("av-10", "avoid", "hk-orion-health", "hk-story-before-profit", 89, "平台故事很大，但盈利兑现时间仍远，港股环境下容错率很低。", "先看现金流拐点，再谈重估。");
   addRanking("av-11", "avoid", "hk-lotus-tech", "hk-story-before-profit", 71, "修复故事开始能讲，但盈利和现金流离真正安全区还远。", "情绪好时能涨，验证慢时也会跌得快。");
   addRanking("av-12", "avoid", "hk-victory-consumer", "hk-policy-beta-only", 66, "如果上涨只剩政策预期，胜率会明显下降。", "需要等经营数据继续跟上。");
+  addRanking("op-19", "opportunity", "hk-lotus-tech", "hk-policy-beta-only", 71, "平台修复第一次看到成本优化和活跃度回升同时出现，属于港股里更适合跟踪的现金流修复观察样本。", "先看亏损收窄能否继续，再决定是不是进入主升段。");
+  addRanking("op-20", "opportunity", "hk-bauhinia-utilities", "hk-dividend-fragile", 79, "现金流覆盖和股息安全都更扎实，是港股高股息里更安心的慢变量资产。", "适合放在防守仓位，而不是拿它博高弹性。");
+  addRanking("av-19", "avoid", "hk-pearl-infra", "hk-dividend-fragile", 64, "高股息逻辑没坏，但如果经营现金流覆盖转弱，防守资产也会变成收益率陷阱。", "先确认分红来源，再决定是否继续拿。");
+  addRanking("av-20", "avoid", "hk-harbor-finance", "hk-property-chain-shadow", 69, "金融折价修复虽然在走，但地产链敞口没有继续出清前，估值上限仍会被压住。", "盯资产质量，不要只盯南向回流。");
 
   data.rankingItems = rankingItems;
 
@@ -1039,18 +1444,20 @@ window.prototypeData = {};
   addValuation({ id: "val-04", stockId: "cn-sea-auto", presetIds: ["undervalued", "cashflow", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "29.00", fairValueHigh: "31.50", marginOfSafety: "21%", marginValue: 21, qualityValue: 76, crowdingScore: 34, verdict: "低估可跟踪", note: "出海订单验证比题材情绪更清楚，修复路径可解释。" });
   addValuation({ id: "val-05", stockId: "cn-morning-chips", presetIds: ["cashflow"], valuationBand: "quality-premium", sizeBucket: "mid", fairValueLow: "48.00", fairValueHigh: "53.00", marginOfSafety: "6%", marginValue: 6, qualityValue: 68, crowdingScore: 62, verdict: "等待更好价格", note: "技术方向没错，但流动性和估值都不够舒服。" });
   addValuation({ id: "val-06", stockId: "cn-bridge-port", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid-large", fairValueLow: "13.80", fairValueHigh: "14.60", marginOfSafety: "16%", marginValue: 16, qualityValue: 79, crowdingScore: 28, verdict: "合理可持有", note: "收益率不错，但仍要盯住债务与资本开支。" });
+  addValuation({ id: "val-25", stockId: "cn-sunrise-industrials", presetIds: ["undervalued", "cashflow", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "25.40", fairValueHigh: "27.10", marginOfSafety: "19%", marginValue: 19, qualityValue: 81, crowdingScore: 31, verdict: "修复型可跟踪", note: "政策修复已经转成订单和现金流验证，低估值来自修复早期而不是伪反转。" });
   addValuation({ id: "val-07", stockId: "us-cascade-pay", presetIds: ["cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mega", fairValueLow: "138.00", fairValueHigh: "145.00", marginOfSafety: "16%", marginValue: 16, qualityValue: 91, crowdingScore: 26, verdict: "合理可持有", note: "回购和自由现金流一起托底，质量在美股里很稀缺。" });
   addValuation({ id: "val-08", stockId: "us-helix-robotics", presetIds: ["trend-calm"], valuationBand: "quality-premium", sizeBucket: "mid-large", fairValueLow: "78.00", fairValueHigh: "86.00", marginOfSafety: "2%", marginValue: 2, qualityValue: 83, crowdingScore: 77, verdict: "趋势过热不追", note: "趋势仍强，但拥挤度太高，安全边际不足。" });
   addValuation({ id: "val-09", stockId: "us-pioneer-cloud", presetIds: ["undervalued"], valuationBand: "quality-premium", sizeBucket: "mid-large", fairValueLow: "46.00", fairValueHigh: "52.00", marginOfSafety: "-22%", marginValue: -22, qualityValue: 60, crowdingScore: 70, verdict: "估值陷阱回避", note: "并不是低估，而是仍在高估区域里讲放缓故事。" });
   addValuation({ id: "val-10", stockId: "us-atlas-medical", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "112.00", fairValueHigh: "120.00", marginOfSafety: "24%", marginValue: 24, qualityValue: 87, crowdingScore: 21, verdict: "低估可跟踪", note: "价值修复路径清楚，拥挤度也比热门科技低很多。" });
   addValuation({ id: "val-11", stockId: "us-nova-retail", presetIds: ["cashflow", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid", fairValueLow: "50.00", fairValueHigh: "55.00", marginOfSafety: "17%", marginValue: 17, qualityValue: 72, crowdingScore: 39, verdict: "合理可跟踪", note: "需求仍在，但必须继续盯现金流转正节点。" });
-  addValuation({ id: "val-12", stockId: "us-summit-energy", presetIds: ["undervalued", "dividend", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "69.00", fairValueHigh: "74.00", marginOfSafety: "23%", marginValue: 23, qualityValue: 80, crowdingScore: 33, verdict: "分红型可守", note: "修复和股东回报同时成立，估值还不贵。" });
+  addValuation({ id: "val-12", stockId: "us-summit-energy", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "69.00", fairValueHigh: "74.00", marginOfSafety: "23%", marginValue: 23, qualityValue: 80, crowdingScore: 33, verdict: "分红型可守", note: "自由现金流改善、资本纪律和股东回报一起成立，估值还不贵。" });
   addValuation({ id: "val-13", stockId: "jp-sakura-machinery", presetIds: ["cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid-large", fairValueLow: "JPY 2,930", fairValueHigh: "JPY 3,120", marginOfSafety: "17%", marginValue: 17, qualityValue: 89, crowdingScore: 20, verdict: "合理可持有", note: "回购落地后，估值提升逻辑比普通低估值更可靠。" });
   addValuation({ id: "val-14", stockId: "jp-mirai-rail", presetIds: ["undervalued", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid", fairValueLow: "JPY 3,620", fairValueHigh: "JPY 3,860", marginOfSafety: "18%", marginValue: 18, qualityValue: 74, crowdingScore: 35, verdict: "修复中观察", note: "业绩上修成立，但现金释放仍慢一步。" });
   addValuation({ id: "val-15", stockId: "jp-hinode-logistics", presetIds: ["undervalued"], valuationBand: "undervalued", sizeBucket: "niche", fairValueLow: "JPY 980", fairValueHigh: "JPY 1,050", marginOfSafety: "-11%", marginValue: -11, qualityValue: 58, crowdingScore: 41, verdict: "估值陷阱回避", note: "长期便宜不等于马上重估，流动性会放大失误。" });
   addValuation({ id: "val-16", stockId: "jp-koyo-banks", presetIds: ["undervalued", "dividend", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mega", fairValueLow: "JPY 1,910", fairValueHigh: "JPY 2,020", marginOfSafety: "24%", marginValue: 24, qualityValue: 86, crowdingScore: 23, verdict: "分红型可守", note: "股东回报动作开始兑现，低估值更容易被看见。" });
   addValuation({ id: "val-17", stockId: "jp-aoi-electronics", presetIds: ["cashflow", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid", fairValueLow: "JPY 4,950", fairValueHigh: "JPY 5,160", marginOfSafety: "15%", marginValue: 15, qualityValue: 77, crowdingScore: 37, verdict: "合理可跟踪", note: "经营改善有迹象，但还不适合给太高溢价。" });
   addValuation({ id: "val-18", stockId: "jp-tsubasa-food", presetIds: ["dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid", fairValueLow: "JPY 2,260", fairValueHigh: "JPY 2,360", marginOfSafety: "12%", marginValue: 12, qualityValue: 73, crowdingScore: 19, verdict: "等待更好价格", note: "防守属性不错，但真正的效率修复还需要更多证据。" });
+  addValuation({ id: "val-26", stockId: "jp-tokai-holdings", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "undervalued", sizeBucket: "mid-large", fairValueLow: "JPY 2,120", fairValueHigh: "JPY 2,240", marginOfSafety: "21%", marginValue: 21, qualityValue: 82, crowdingScore: 25, verdict: "治理修复可跟踪", note: "低 PBR 修复的核心不是便宜，而是交叉持股处置和回购已经给出路径。" });
   addValuation({ id: "val-19", stockId: "hk-pearl-infra", presetIds: ["cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mega", fairValueLow: "HKD 11.30", fairValueHigh: "HKD 11.90", marginOfSafety: "15%", marginValue: 15, qualityValue: 85, crowdingScore: 24, verdict: "分红型可守", note: "现金流和分红覆盖都清楚，是港股防守底仓。" });
   addValuation({ id: "val-20", stockId: "hk-victory-consumer", presetIds: ["undervalued", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid", fairValueLow: "HKD 33.50", fairValueHigh: "HKD 36.20", marginOfSafety: "20%", marginValue: 20, qualityValue: 74, crowdingScore: 42, verdict: "修复中观察", note: "南向偏好和消费修复都有，但盈利斜率仍需确认。" });
   addValuation({ id: "val-21", stockId: "hk-orion-health", presetIds: ["undervalued"], valuationBand: "undervalued", sizeBucket: "niche", fairValueLow: "HKD 10.20", fairValueHigh: "HKD 12.10", marginOfSafety: "-26%", marginValue: -26, qualityValue: 59, crowdingScore: 58, verdict: "估值陷阱回避", note: "看起来便宜，但盈利和现金流都还太远。" });
@@ -1075,7 +1482,13 @@ window.prototypeData = {};
       ctaLinks: [
         { title: "顺风方向", description: "先看现金流红利和政策修复，优先筛验证更清楚的样本。", url: boardUrl("cn", "opportunity", { strategy: "cn-high-dividend" }), tone: "success" },
         { title: "警惕拐点", description: "把情绪末端追高从左侧不能买榜里先筛掉。", url: boardUrl("cn", "avoid", { scene: "cn-crowded-theme" }), tone: "warning" }
-      ]
+      ],
+      watchlistItems: [
+        { stockId: "cn-sunrise-industrials", role: "政策修复验证", whyWatch: "看设备更新订单和经营现金流能否继续同步抬升，防止修复重新退回成伪反转。" },
+        { stockId: "cn-river-grid", role: "红利稳定器", whyWatch: "看红利资金是否继续回流，以及资本开支是否保持克制，确认它还能承担组合稳定器角色。" },
+        { stockId: "cn-sea-auto", role: "出海升级跟踪", whyWatch: "看海外订单和高附加值产品占比能否一起抬升，确认出海升级不是只靠题材热度。" }
+      ],
+      watchlistStockIds: ["cn-sunrise-industrials", "cn-river-grid", "cn-sea-auto"]
     },
     {
       market: "us",
@@ -1091,7 +1504,13 @@ window.prototypeData = {};
       ctaLinks: [
         { title: "顺风方向", description: "回到机会榜，先看自由现金流扩张和价值修复样本。", url: boardUrl("us", "opportunity", { strategy: "us-free-cashflow" }), tone: "success" },
         { title: "警惕拐点", description: "把 AI 拥挤交易和指引下修风险先筛到不能买榜。", url: boardUrl("us", "avoid", { scene: "us-ai-crowding" }), tone: "warning" }
-      ]
+      ],
+      watchlistItems: [
+        { stockId: "us-cascade-pay", role: "现金流锚", whyWatch: "看自由现金流率和回购执行能否继续稳住，这是美股高质量资产能否持续跑赢的核心。" },
+        { stockId: "us-helix-robotics", role: "趋势温度计", whyWatch: "看订单与利润率是否同步兑现，避免强趋势在拥挤交易里先透支掉未来收益。" },
+        { stockId: "us-atlas-medical", role: "低拥挤修复", whyWatch: "看去库存结束后利润率修复能否继续兑现，确认价值修复不是一次性反弹。" }
+      ],
+      watchlistStockIds: ["us-cascade-pay", "us-helix-robotics", "us-atlas-medical"]
     },
     {
       market: "jp",
@@ -1107,7 +1526,13 @@ window.prototypeData = {};
       ctaLinks: [
         { title: "顺风方向", description: "回到机会榜，先看回购和高股息并行的治理改善样本。", url: boardUrl("jp", "opportunity", { strategy: "jp-buyback-rotation" }), tone: "success" },
         { title: "警惕拐点", description: "先把薄流动性和价值陷阱从不能买榜里筛掉。", url: boardUrl("jp", "avoid", { scene: "jp-thin-liquidity" }), tone: "warning" }
-      ]
+      ],
+      watchlistItems: [
+        { stockId: "jp-tokai-holdings", role: "低 PBR 改善", whyWatch: "看交叉持股处置、回购执行和 ROE 目标能否一起兑现，确认便宜正在变成可重估。" },
+        { stockId: "jp-sakura-machinery", role: "回购兑现样本", whyWatch: "看真实回购和资本效率改善能否继续落地，这是日股治理改善最重要的确认点。" },
+        { stockId: "jp-mirai-rail", role: "业绩上修观察", whyWatch: "看利润率上修能否最终转成自由现金流释放，避免高 capex 拖慢重估节奏。" }
+      ],
+      watchlistStockIds: ["jp-tokai-holdings", "jp-sakura-machinery", "jp-mirai-rail"]
     },
     {
       market: "hk",
@@ -1123,7 +1548,13 @@ window.prototypeData = {};
       ctaLinks: [
         { title: "顺风方向", description: "回到机会榜，优先看高股息和估值修复已经同向的样本。", url: boardUrl("hk", "opportunity", { strategy: "hk-high-dividend" }), tone: "success" },
         { title: "警惕拐点", description: "把故事先于盈利的方向先放进不能买榜过滤。", url: boardUrl("hk", "avoid", { scene: "hk-story-before-profit" }), tone: "warning" }
-      ]
+      ],
+      watchlistItems: [
+        { stockId: "hk-harbor-finance", role: "南向回流锚", whyWatch: "看南向资金、股东回报和资产质量能否继续同向，确认折价修复不是只靠情绪。" },
+        { stockId: "hk-pearl-infra", role: "股息安全样本", whyWatch: "看经营现金流覆盖和分红稳定性是否持续站住，确认高股息不是收益率陷阱。" },
+        { stockId: "hk-lotus-tech", role: "平台修复观察", whyWatch: "看亏损收窄和经营现金流改善是否继续推进，判断平台修复能否从故事走到盈利。" }
+      ],
+      watchlistStockIds: ["hk-harbor-finance", "hk-pearl-infra", "hk-lotus-tech"]
     }
   ];
 })();

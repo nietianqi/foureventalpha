@@ -69,6 +69,43 @@
     return marketPathById[safeMarket(marketId)];
   }
 
+  function valuationPageUrl(marketId, filters) {
+    const next = new URLSearchParams();
+    const config = filters || {};
+
+    next.set("market", safeMarket(marketId));
+
+    [
+      ["valPreset", config.preset],
+      ["valBand", config.band],
+      ["valQuality", config.quality],
+      ["valMargin", config.margin],
+      ["valSize", config.size]
+    ].forEach(([key, value]) => {
+      if (value && value !== "all") {
+        next.set(key, value);
+      }
+    });
+
+    return `valuation.html?${next.toString()}`;
+  }
+
+  function trendPageUrl(marketId) {
+    return `trend.html?market=${safeMarket(marketId)}`;
+  }
+
+  function marketContextUrl(pageId, marketId) {
+    if (pageId === "valuation") {
+      return valuationPageUrl(marketId);
+    }
+
+    if (pageId === "trend") {
+      return trendPageUrl(marketId);
+    }
+
+    return marketUrl(marketId);
+  }
+
   function stockUrl(stockId) {
     return `stock.html?stock=${stockId}`;
   }
@@ -93,24 +130,16 @@
     return `${marketUrl(marketId)}${query ? `?${query}` : ""}${hash}`;
   }
 
-  function valuationUrl(marketId, filters) {
-    const next = new URLSearchParams();
-    const config = filters || {};
+  function getValuationParams(params) {
+    const current = params || currentParams();
 
-    [
-      ["valPreset", config.preset],
-      ["valBand", config.band],
-      ["valQuality", config.quality],
-      ["valMargin", config.margin],
-      ["valSize", config.size]
-    ].forEach(([key, value]) => {
-      if (value && value !== "all") {
-        next.set(key, value);
-      }
-    });
-
-    const query = next.toString();
-    return `${marketUrl(marketId)}${query ? `?${query}` : ""}#valuation-board`;
+    return {
+      preset: current.get("valPreset"),
+      band: current.get("valBand"),
+      quality: current.get("valQuality"),
+      margin: current.get("valMargin"),
+      size: current.get("valSize")
+    };
   }
 
   function setTitle(title) {
@@ -125,6 +154,11 @@
     return items
       .map((item) => `<option value="${item.value}"${item.value === selectedValue ? " selected" : ""}>${item.label}</option>`)
       .join("");
+  }
+
+  function optionLabel(group, value) {
+    const item = data.valuationFilterOptions[group].find((entry) => entry.value === value);
+    return item ? item.label : "未设置";
   }
 
   function updateQueryGroup(values) {
@@ -142,11 +176,13 @@
     window.history.replaceState({}, "", nextUrl);
   }
 
-  function renderHeader(activePage, activeMarket) {
+  function renderHeader(activePage, activeMarket, activeStockId) {
     const navLinks = [
       { id: "home", label: "首页", href: "index.html" },
       { id: "market", label: "市场页", href: marketUrl(activeMarket || "cn") },
-      { id: "stock", label: "股票详情", href: stockUrl("cn-galaxy-energy") }
+      { id: "valuation", label: "合理股价估值", href: valuationPageUrl(activeMarket || "cn") },
+      { id: "trend", label: "趋势", href: trendPageUrl(activeMarket || "cn") },
+      { id: "stock", label: "股票详情", href: stockUrl(activeStockId || "cn-galaxy-energy") }
     ];
 
     const links = navLinks
@@ -156,7 +192,7 @@
     const marketLinks = data.marketOrder
       .map((marketId) => {
         const market = data.markets[marketId];
-        return `<a class="chip${marketId === activeMarket ? " is-active" : ""}" href="${marketUrl(marketId)}">${market.shortName}</a>`;
+        return `<a class="chip${marketId === activeMarket ? " is-active" : ""}" href="${marketContextUrl(activePage, marketId)}">${market.shortName}</a>`;
       })
       .join("");
 
@@ -191,7 +227,7 @@
         <div class="container">
           <div class="footer-card">
             <strong>原型说明</strong>
-            <p>${data.site.note} 当前更新时间：${data.site.updatedAt}。本轮正式入口为首页、四个独立市场页和股票详情页；市场页已经升级为左侧双榜单 + 右侧估值工作台 / 趋势雷达。</p>
+            <p>${data.site.note} 当前更新时间：${data.site.updatedAt}。本轮正式入口为首页、四个独立市场页、合理股价估值页、趋势页和股票详情页。</p>
           </div>
         </div>
       </footer>
@@ -199,10 +235,12 @@
     `;
   }
 
-  function renderShell(activePage, activeMarket, content) {
+  function renderShell(activePage, activeMarket, content, options) {
+    const config = options || {};
+
     app.innerHTML = `
       <div class="page-shell">
-        ${renderHeader(activePage, activeMarket)}
+        ${renderHeader(activePage, activeMarket, config.stockId)}
         <div class="page-main">
           <div class="container fade-up">${content}</div>
         </div>
@@ -311,6 +349,23 @@
     `;
   }
 
+  function renderSampleStockLinks(stockIds) {
+    const validIds = (stockIds || []).filter((stockId) => summaryById[stockId]);
+
+    if (!validIds.length) {
+      return "";
+    }
+
+    return `
+      <div class="button-row">
+        ${validIds
+          .slice(0, 2)
+          .map((stockId) => `<a class="button ghost subtle" href="${stockUrl(stockId)}">${summaryById[stockId].name}</a>`)
+          .join("")}
+      </div>
+    `;
+  }
+
   function renderHomePage() {
     setTitle("首页原型");
     const opportunityItems = data.rankingItems.filter((item) => item.type === "opportunity").slice(0, 4);
@@ -363,21 +418,22 @@
             <div>
               <div class="eyebrow">P0 首页原型</div>
               <h1>四个市场，不能只用一套买法。</h1>
-              <p>首页不是资讯堆砌页，而是决策入口。用户进来后要在 5 秒内理解：四个市场用不同逻辑判断，机会和风险也必须并排看。</p>
+              <p>首页不是资讯堆砌页，而是决策入口。用户进来后要在 5 秒内理解：四个市场用不同逻辑判断，机会和风险必须并排看，估值和趋势拆成独立页面看。</p>
               <div class="button-row">
                 <a class="button primary" href="${marketUrl("cn")}">从中国市场开始</a>
-                <a class="button secondary" href="${valuationUrl("us", data.markets.us.valuationDefaults)}">先看估值工作台</a>
+                <a class="button secondary" href="${valuationPageUrl("cn", data.markets.cn.valuationDefaults)}">先看合理估值</a>
+                <a class="button ghost" href="${trendPageUrl("cn")}">看趋势页</a>
               </div>
               <div class="stats-grid">
                 <div class="stat-card"><strong>4</strong><span>独立市场入口页</span></div>
-                <div class="stat-card"><strong>2</strong><span>左侧机会/风险榜单</span></div>
-                <div class="stat-card"><strong>1</strong><span>右侧合理估值工作台</span></div>
-                <div class="stat-card"><strong>1</strong><span>趋势雷达侧栏</span></div>
+                <div class="stat-card"><strong>2</strong><span>双榜单筛选模块</span></div>
+                <div class="stat-card"><strong>1</strong><span>独立估值工作台</span></div>
+                <div class="stat-card"><strong>1</strong><span>独立趋势页</span></div>
               </div>
             </div>
             <div class="hero-side">
               <div class="floating-card"><strong>首页必须回答的 3 个问题</strong><span>现在应该去哪个市场看？用什么逻辑看？今天最该先避开什么？</span></div>
-              <div class="floating-card"><strong>本轮原型交互范围</strong><span>支持四市场独立切换、左侧双榜单筛选、右侧估值工作台筛选、趋势跳转和详情页状态演示。</span></div>
+              <div class="floating-card"><strong>本轮原型交互范围</strong><span>支持四市场独立切换、市场页双榜单筛选、独立估值页筛选、趋势页跳转和详情页状态演示。</span></div>
               <div class="floating-card"><strong>原型输出定位</strong><span>HTML 中保真结构稿，可直接作为后续 Figma 还原和前端实现基线。</span></div>
             </div>
           </div>
@@ -400,7 +456,7 @@
             <div>
               <div class="section-marker">Boards</div>
               <h2>机会与风险并列展示</h2>
-              <p>首页继续保留摘要能力，但完整筛选、估值工作台和趋势雷达都沉到了各市场页。</p>
+              <p>首页继续保留摘要能力，但完整筛选沉到市场页，独立估值和趋势改成顶部入口页。</p>
             </div>
           </div>
           <div class="ranking-panels">
@@ -447,7 +503,7 @@
               <ul class="list-bullets">
                 <li>四市场总览与基础教学</li>
                 <li>市场页双榜单公开筛选</li>
-                <li>右侧估值工作台公开摘要</li>
+                <li>独立估值页公开摘要</li>
               </ul>
               <div class="button-row"><button class="button ghost" data-message="免费路径已默认开放。">继续浏览</button></div>
             </article>
@@ -543,6 +599,82 @@
     };
   }
 
+  function getFilteredValuationItems(marketId, state) {
+    return data.valuationItems
+      .filter((item) => item.market === marketId)
+      .filter((item) => item.presetIds.includes(state.preset))
+      .filter((item) => (state.band === "all" ? true : item.valuationBand === state.band))
+      .filter((item) => (state.size === "all" ? true : item.sizeBucket === state.size))
+      .filter((item) => (state.quality === "all" ? true : item.qualityValue >= valuationThresholds[state.quality]))
+      .filter((item) => (state.margin === "all" ? true : item.marginValue >= valuationThresholds[state.margin]))
+      .sort((left, right) => {
+        const sortKey = valuationPresetById[state.preset].sortKey;
+
+        if (sortKey === "crowding") {
+          return left.crowdingScore - right.crowdingScore || right.qualityValue - left.qualityValue;
+        }
+
+        if (sortKey === "quality") {
+          return right.qualityValue - left.qualityValue || right.marginValue - left.marginValue;
+        }
+
+        return right.marginValue - left.marginValue || right.qualityValue - left.qualityValue;
+      });
+  }
+
+  function handleLegacyMarketHash(marketId) {
+    if (window.location.hash === "#valuation-board") {
+      window.location.replace(`${valuationPageUrl(marketId, getValuationParams())}#valuation-board`);
+      return true;
+    }
+
+    if (window.location.hash === "#trend-board") {
+      window.location.replace(`${trendPageUrl(marketId)}#trend-board`);
+      return true;
+    }
+
+    return false;
+  }
+
+  function renderTrendWatchlist(marketId) {
+    const trend = trendByMarket[marketId];
+    const watchlist =
+      trend.watchlistItems && trend.watchlistItems.length
+        ? trend.watchlistItems
+        : (trend.watchlistStockIds || []).map((stockId) => ({ stockId, role: "跟踪样本" }));
+
+    return watchlist
+      .filter((entry) => summaryById[entry.stockId])
+      .map((entry) => {
+        const summary = summaryById[entry.stockId];
+        const detail = data.stockDetails[summary.id];
+        const strategy = strategyById[summary.strategyId];
+        const role = entry.role || strategy.name;
+        const whyWatch = entry.whyWatch || detail.conclusion.summary;
+
+        return `
+          <article class="card">
+            <div class="pill-row">
+              ${pill(summary.symbol, "dark")}
+              ${pill(role, "primary")}
+              ${pill(`风险 ${summary.riskLevel}`, riskTone[summary.riskLevel])}
+            </div>
+            <h3>${summary.name}</h3>
+            <p>${whyWatch}</p>
+            <div class="pill-row">
+              ${pill(summary.industry, "neutral")}
+              ${pill(`流动性 ${summary.liquidity}`, "neutral")}
+            </div>
+            <div class="stock-row-footer">
+              <span class="card-subtle">${detail.thesis[0]}</span>
+              <a class="button ghost subtle" href="${stockUrl(summary.id)}">查看详情</a>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
   function renderValuationPanel(marketId, state) {
     const presetTabs = data.valuationPresets
       .map((preset) => `<button class="preset-chip${preset.id === state.preset ? " is-active" : ""}" data-valuation-preset="${preset.id}" type="button">${preset.label}</button>`)
@@ -582,7 +714,7 @@
         </div>
         <div class="valuation-meta">
           <span id="valuation-count">当前结果：0 只</span>
-          <span>参考 Investing 选股器骨架做筛选工作台，但这里只保留适合本原型的核心判断维度。</span>
+          <span>${data.markets[marketId].valuationFocus} 这里参考 Investing 选股器的工作台骨架，但只保留适合本原型的核心判断维度。</span>
         </div>
         <div class="valuation-table-wrap">
           <table class="valuation-table">
@@ -635,7 +767,7 @@
           <div>
             <div class="section-marker">Trend Radar</div>
             <h2>趋势雷达</h2>
-            <p>${market.trendOverview}</p>
+            <p>${market.trendFocus}</p>
           </div>
         </div>
         <div class="trend-temperature">
@@ -720,10 +852,13 @@
 
   function renderMarketPage() {
     const marketId = safeMarket(document.body.dataset.market);
+    if (handleLegacyMarketHash(marketId)) {
+      return null;
+    }
+
     const market = data.markets[marketId];
     const opportunityState = getBoardState("op", marketId);
     const avoidState = getBoardState("av", marketId);
-    const valuationState = getValuationState(marketId);
 
     const strategyCards = market.strategyIds
       .map((strategyId) => {
@@ -733,14 +868,16 @@
             ${pill("怎么买", "primary")}
             <h3>${strategy.name}</h3>
             <p>${strategy.summary}</p>
-            <div class="pill-row">
-              ${pill(`适合：${strategy.fitFor}`, "neutral")}
-              ${pill(`周期：${strategy.cycle}`, "success")}
-            </div>
+            <ul class="list-bullets">
+              <li><strong>适用场景：</strong>${strategy.fitFor}</li>
+              <li><strong>必须验证：</strong>${strategy.mustConfirm}</li>
+              <li><strong>最容易看错：</strong>${strategy.falsePositive}</li>
+            </ul>
             <div class="stock-row-footer">
-              <span class="card-subtle">催化：${strategy.catalyst}</span>
+              <span class="card-subtle">核心问题：${strategy.coreQuestion}</span>
               <a class="button ghost subtle" href="${boardUrl(marketId, "opportunity", { strategy: strategy.id })}">查看机会样本</a>
             </div>
+            ${renderSampleStockLinks(strategy.sampleStockIds)}
           </article>
         `;
       })
@@ -754,11 +891,16 @@
             ${pill(`风险 ${scene.level}`, riskTone[scene.level])}
             <h3>${scene.name}</h3>
             <p>${scene.summary}</p>
-            <div class="pill-row">${pill(scene.signal, "neutral")}</div>
+            <ul class="list-bullets">
+              <li><strong>为什么危险：</strong>${scene.whyDangerous}</li>
+              <li><strong>何时能重看：</strong>${scene.reentrySignal}</li>
+              <li><strong>替代打法：</strong>${scene.substitute}</li>
+            </ul>
             <div class="stock-row-footer">
-              <span class="card-subtle">替代方向：${scene.substitute}</span>
+              <span class="card-subtle">危险信号：${scene.signal}</span>
               <a class="button warning subtle" href="${boardUrl(marketId, "avoid", { scene: scene.id })}">查看回避样本</a>
             </div>
+            ${renderSampleStockLinks(scene.sampleStockIds)}
           </article>
         `;
       })
@@ -778,7 +920,8 @@
               <div class="button-row">
                 <a class="button secondary" href="#opportunity-board">看今日机会榜</a>
                 <a class="button ghost" href="#avoid-board">看今日不能买榜</a>
-                <a class="button primary" href="#valuation-board">看合理估值台</a>
+                <a class="button primary" href="${valuationPageUrl(marketId, market.valuationDefaults)}">去合理估值页</a>
+                <a class="button ghost" href="${trendPageUrl(marketId)}">去趋势页</a>
               </div>
             </div>
             <div class="banner-side">
@@ -789,11 +932,37 @@
         </section>
 
         <section class="section">
+          <div class="market-grid">
+            <article class="card">
+              ${pill("判断顺序", "primary")}
+              <h3>先看什么</h3>
+              <p>${market.methodSummary}</p>
+            </article>
+            <article class="card">
+              ${pill("估值重点", "success")}
+              <h3>估值页先确认什么</h3>
+              <p>${market.valuationFocus}</p>
+            </article>
+            <article class="card">
+              ${pill("趋势重点", "dark")}
+              <h3>趋势页先盯什么</h3>
+              <p>${market.trendFocus}</p>
+            </article>
+            <article class="card">
+              ${pill("假信号", "warning")}
+              <h3>最怕什么误判</h3>
+              <p>${market.currentState}</p>
+              <div class="pill-row">${pill(`易踩坑：${market.pitfall}`, "warning")}</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
           <div class="section-head">
             <div>
               <div class="section-marker">Strategy</div>
               <h2>要怎么买</h2>
-              <p>统一的 4 张思路卡模板，不同市场只替换内容，不改结构。</p>
+              <p>每张思路卡都统一拆成适用场景、必须验证、最容易看错什么和对应样本，四个市场只换方法论，不换结构骨架。</p>
             </div>
           </div>
           <div class="market-grid">${strategyCards}</div>
@@ -804,7 +973,7 @@
             <div>
               <div class="section-marker">Avoid</div>
               <h2>不能买什么</h2>
-              <p>把“不能买场景”做成稳定结构，首页、市场页和详情页继续复用同一套视觉语言。</p>
+              <p>每个风险场景都明确说清为什么危险、什么时候能重看、替代打法和对应样本，避免只剩一句“先别买”。</p>
             </div>
           </div>
           <div class="market-grid">${sceneCards}</div>
@@ -815,23 +984,17 @@
             <div>
               <div class="section-marker">Workspace</div>
               <h2>市场筛选演示区</h2>
-              <p>${market.name} 的左侧继续保留双榜单筛选，右侧新增合理估值工作台与趋势雷达，三块内容互相配合但状态独立。</p>
+              <p>${market.name} 继续保留机会榜与不能买榜的双栏主工作区；合理估值和趋势已经独立成顶部导航页面，便于分开深挖。</p>
             </div>
           </div>
-          <div class="market-workspace">
-            <div class="filter-panel board-hub">
-              <div class="workspace-head">
-                <strong>左侧双榜单</strong>
-                <span>机会榜和不能买榜互不影响，继续承担“先找方向、先避坑”的主职责。</span>
-              </div>
-              <div class="board-grid">
-                ${renderBoardPanel("opportunity", marketId, opportunityState)}
-                ${renderBoardPanel("avoid", marketId, avoidState)}
-              </div>
+          <div class="filter-panel board-hub">
+            <div class="workspace-head">
+              <strong>双榜单主工作区</strong>
+              <span>左栏找方向，右栏先避坑；如果要继续看合理估值或趋势节奏，请从顶部导航进入独立页面。</span>
             </div>
-            <div class="analysis-grid">
-              ${renderValuationPanel(marketId, valuationState)}
-              ${renderTrendPanel(marketId)}
+            <div class="board-grid">
+              ${renderBoardPanel("opportunity", marketId, opportunityState)}
+              ${renderBoardPanel("avoid", marketId, avoidState)}
             </div>
           </div>
         </section>
@@ -842,11 +1005,11 @@
               <div>
                 <div class="section-marker">Education</div>
                 <h2>为什么这个市场要这么看</h2>
-                <p>${market.intro}</p>
+                <p>${market.methodSummary}</p>
               </div>
             </div>
             <div class="education-grid">
-              ${market.education.map((item, index) => `<article class="card">${pill(`教学要点 ${index + 1}`, "dark")}<h3>${market.shortName}市场判断规则</h3><p>${item}</p></article>`).join("")}
+              ${market.education.map((item, index) => `<article class="card">${pill(`步骤 ${index + 1}`, "dark")}<h3>${market.shortName}市场判断顺序</h3><p>${item}</p></article>`).join("")}
             </div>
           </div>
         </section>
@@ -914,25 +1077,15 @@
   function bindValuationPanel(marketId) {
     const state = getValuationState(marketId);
     const marketDefaults = data.markets[marketId].valuationDefaults;
+    const body = app.querySelector("#valuation-body");
+    const count = app.querySelector("#valuation-count");
+
+    if (!body || !count) {
+      return;
+    }
 
     function getFilteredItems() {
-      return data.valuationItems
-        .filter((item) => item.market === marketId)
-        .filter((item) => item.presetIds.includes(state.preset))
-        .filter((item) => (state.band === "all" ? true : item.valuationBand === state.band))
-        .filter((item) => (state.size === "all" ? true : item.sizeBucket === state.size))
-        .filter((item) => (state.quality === "all" ? true : item.qualityValue >= valuationThresholds[state.quality]))
-        .filter((item) => (state.margin === "all" ? true : item.marginValue >= valuationThresholds[state.margin]))
-        .sort((left, right) => {
-          const sortKey = valuationPresetById[state.preset].sortKey;
-          if (sortKey === "crowding") {
-            return left.crowdingScore - right.crowdingScore || right.qualityValue - left.qualityValue;
-          }
-          if (sortKey === "quality") {
-            return right.qualityValue - left.qualityValue || right.marginValue - left.marginValue;
-          }
-          return right.marginValue - left.marginValue || right.qualityValue - left.qualityValue;
-        });
+      return getFilteredValuationItems(marketId, state);
     }
 
     function syncControls() {
@@ -958,8 +1111,6 @@
 
     function renderTable() {
       const items = getFilteredItems();
-      const body = app.querySelector('#valuation-body');
-      const count = app.querySelector('#valuation-count');
 
       body.innerHTML = items.length
         ? items.map(renderValuationRow).join('')
@@ -1007,6 +1158,170 @@
 
     syncControls();
     renderTable();
+  }
+
+  function renderValuationPage() {
+    const marketId = safeMarket(currentParams().get("market"));
+    const market = data.markets[marketId];
+    const valuationState = getValuationState(marketId);
+    const preset = valuationPresetById[valuationState.preset];
+    const filteredItems = getFilteredValuationItems(marketId, valuationState);
+    const featuredStockId = market.opportunityStockIds[0] || market.avoidStockIds[0];
+
+    setTitle(`${market.name}合理估值`);
+    renderShell(
+      "valuation",
+      marketId,
+      `
+        <section class="section">
+          <div class="banner-grid">
+            <div class="banner-card">
+              <div class="eyebrow">${market.name} / Valuation</div>
+              <h1 class="page-title">合理股价估值</h1>
+              <p class="page-subtitle">${market.currentState}</p>
+              <div class="button-row">
+                <a class="button secondary" href="${marketUrl(marketId)}">回到市场页</a>
+                <a class="button ghost" href="${trendPageUrl(marketId)}">查看趋势页</a>
+                <a class="button primary" href="${stockUrl(featuredStockId)}">打开代表样本</a>
+              </div>
+            </div>
+            <div class="banner-side">
+              <div class="banner-stat"><strong>${preset.label}</strong><span>当前预设</span></div>
+              <div class="banner-stat"><strong>${filteredItems.length} 只</strong><span>当前结果数</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Valuation Notes</div>
+              <h2>${market.shortName}市场估值说明</h2>
+              <p>${market.valuationFocus}</p>
+            </div>
+          </div>
+          <div class="market-grid">
+            <article class="card">
+              ${pill("市场锚点", "primary")}
+              <h3>判断顺序</h3>
+              <p>${market.methodSummary}</p>
+              <div class="pill-row">${pill(market.fitStyle, "neutral")}</div>
+            </article>
+            <article class="card">
+              ${pill("估值焦点", "success")}
+              <h3>看估值前先确认什么</h3>
+              <p>${market.valuationFocus}</p>
+              <div class="pill-row">${pill(`市场默认：${valuationPresetById[market.valuationDefaults.preset].label}`, "success")}</div>
+            </article>
+            <article class="card">
+              ${pill("默认筛选", "dark")}
+              <h3>当前过滤组合</h3>
+              <p>估值带：${optionLabel("band", valuationState.band)}；质量门槛：${optionLabel("quality", valuationState.quality)}；安全边际：${optionLabel("margin", valuationState.margin)}；市值段：${optionLabel("size", valuationState.size)}。</p>
+              <div class="pill-row">${pill("切市场后重置为目标市场默认组合", "neutral")}</div>
+            </article>
+            <article class="card">
+              ${pill("先排除", "warning")}
+              <h3>${preset.label}</h3>
+              <p>${preset.summary}</p>
+              <div class="pill-row">${pill(`易踩坑：${market.pitfall}`, "warning")}</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          ${renderValuationPanel(marketId, valuationState)}
+        </section>
+      `,
+      { stockId: featuredStockId }
+    );
+
+    return marketId;
+  }
+
+  function renderTrendPage() {
+    const marketId = safeMarket(currentParams().get("market"));
+    const market = data.markets[marketId];
+    const trend = trendByMarket[marketId];
+    const strongestFactor = trend.factorScores.reduce((best, item) => (item.value > best.value ? item : best), trend.factorScores[0]);
+    const featuredStockId = (trend.watchlistItems && trend.watchlistItems[0] && trend.watchlistItems[0].stockId) || trend.watchlistStockIds[0] || market.opportunityStockIds[0];
+
+    setTitle(`${market.name}趋势`);
+    renderShell(
+      "trend",
+      marketId,
+      `
+        <section class="section">
+          <div class="banner-grid">
+            <div class="banner-card">
+              <div class="eyebrow">${market.name} / Trend</div>
+              <h1 class="page-title">趋势页</h1>
+              <p class="page-subtitle">${market.trendOverview}</p>
+              <div class="button-row">
+                <a class="button secondary" href="${marketUrl(marketId)}">回到市场页</a>
+                <a class="button ghost" href="${valuationPageUrl(marketId, market.valuationDefaults)}">查看合理估值</a>
+                <a class="button primary" href="${stockUrl(featuredStockId)}">打开跟踪样本</a>
+              </div>
+            </div>
+            <div class="banner-side">
+              <div class="banner-stat"><strong>${trend.regime.temperature}°</strong><span>当前趋势温度</span></div>
+              <div class="banner-stat"><strong>${strongestFactor.label} ${strongestFactor.value}</strong><span>当前最强因子</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Trend Focus</div>
+              <h2>${market.shortName}市场趋势判断</h2>
+              <p>${market.trendFocus}</p>
+            </div>
+          </div>
+          <div class="market-grid">
+            <article class="card">
+              ${pill("当前阶段", "primary")}
+              <h3>${trend.regime.label}</h3>
+              <p>${trend.regime.summary}</p>
+              <div class="pill-row">${pill(`温度 ${trend.regime.temperature}°`, "success")}</div>
+            </article>
+            <article class="card">
+              ${pill("趋势重点", "success")}
+              <h3>先盯什么</h3>
+              <p>${market.trendFocus}</p>
+              <div class="pill-row">${pill(`${strongestFactor.label} ${strongestFactor.value}`, "success")}</div>
+            </article>
+            <article class="card">
+              ${pill("顺风方向", "dark")}
+              <h3>优先跟踪</h3>
+              <p>${trend.leaders[0]}</p>
+              <div class="pill-row">${pill("行动卡会带回市场页机会榜", "neutral")}</div>
+            </article>
+            <article class="card">
+              ${pill("警惕事项", "warning")}
+              <h3>先看风险</h3>
+              <p>${trend.warnings[0]}</p>
+              <div class="pill-row">${pill("先在不能买榜确认风险场景", "warning")}</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          ${renderTrendPanel(marketId)}
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Watchlist</div>
+              <h2>当前市场跟踪样本区</h2>
+              <p>每个样本都带“角色”和“为什么现在要看”，再继续跳到股票详情页追具体结论、风险标签和替代方向。</p>
+            </div>
+          </div>
+          <div class="market-grid">${renderTrendWatchlist(marketId)}</div>
+        </section>
+      `,
+      { stockId: featuredStockId }
+    );
   }
 
   function renderStockPage() {
@@ -1068,7 +1383,7 @@
                   <div>
                     <div class="section-marker">Why Buy</div>
                     <h2>入选理由</h2>
-                    <p>详情页必须先把这只股票为什么值得看讲清楚，再谈应该如何约束风险。</p>
+                    <p>把它放回 ${market.shortName} 市场的方法框架里，先回答“${strategy.coreQuestion}”，再决定是否值得继续跟踪。</p>
                   </div>
                 </div>
                 <ul class="list-bullets">${detail.thesis.map((item) => `<li>${item}</li>`).join("")}</ul>
@@ -1089,7 +1404,7 @@
                   <div>
                     <div class="section-marker">Metrics</div>
                     <h2>市场专属指标面板</h2>
-                    <p>${market.name} 的判断逻辑会落到不同指标上，详情页用统一栅格展示可比较信息。</p>
+                    <p>${market.methodSummary}</p>
                   </div>
                 </div>
                 <div class="insight-grid">
@@ -1102,11 +1417,12 @@
                   <div>
                     <div class="section-marker">Related</div>
                     <h2>相关榜单与替代方向</h2>
-                    <p>从详情页继续回到市场工作区查看双榜单、估值与替代方向，是后续增长路径的关键承接。</p>
+                    <p>从详情页继续回到市场页双榜单、独立估值页、趋势页和替代方向，是后续增长路径的关键承接。</p>
                   </div>
                 </div>
                 <div class="related-list">
                   ${detail.related.rankings.map((item) => `<a class="related-link" href="${item.url}"><strong>${item.label}</strong><span>回到市场页继续查看对应筛选和样本。</span></a>`).join("")}
+                  ${detail.related.analysis.map((item) => `<a class="related-link" href="${item.url}"><strong>${item.label}</strong><span>${item.summary}</span></a>`).join("")}
                   ${detail.related.alternatives.map((item) => `<a class="related-link" href="${item.url}"><strong>${item.label}</strong><span>${item.reason}</span></a>`).join("")}
                 </div>
               </div>
@@ -1117,6 +1433,16 @@
                 <strong>结论卡</strong>
                 <p>状态支持“关注 / 观察 / 回避”三态切换，是全站复用的核心业务组件。</p>
                 <div class="pill-row">${pill(`风险等级 ${detail.conclusion.risk}`, riskTone[detail.conclusion.risk])}${pill(`适合周期 ${detail.conclusion.cycle}`, "neutral")}</div>
+              </div>
+              <div class="aside-panel">
+                <strong>市场方法镜头</strong>
+                <p>${market.methodSummary}</p>
+                <div class="pill-row">${pill(market.shortName, "primary")}${pill(strategy.name, "neutral")}</div>
+              </div>
+              <div class="aside-panel">
+                <strong>这条思路先确认什么</strong>
+                <p>${strategy.mustConfirm}</p>
+                <p>最容易看错：${strategy.falsePositive}</p>
               </div>
               <div class="aside-panel">
                 <strong>同市场延伸阅读</strong>
@@ -1134,6 +1460,8 @@
 
         <div class="note-bar">${data.site.note}</div>
       `
+      ,
+      { stockId }
     );
   }
 
@@ -1143,8 +1471,14 @@
     renderHomePage();
   } else if (page === "market") {
     const marketId = renderMarketPage();
-    bindMarketBoards(marketId);
+    if (marketId) {
+      bindMarketBoards(marketId);
+    }
+  } else if (page === "valuation") {
+    const marketId = renderValuationPage();
     bindValuationPanel(marketId);
+  } else if (page === "trend") {
+    renderTrendPage();
   } else if (page === "stock") {
     renderStockPage();
   }
