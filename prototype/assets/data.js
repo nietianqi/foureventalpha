@@ -44,6 +44,12 @@ window.prototypeData = {};
     return `trend.html?${params.toString()}`;
   }
 
+  function screenerUrl(marketId) {
+    const params = new URLSearchParams();
+    params.set("market", marketId);
+    return `screener.html?${params.toString()}`;
+  }
+
   function boardUrl(marketId, boardType, filters) {
     const params = new URLSearchParams();
     const prefix = boardType === "avoid" ? "av" : "op";
@@ -263,6 +269,86 @@ window.prototypeData = {};
         "南向偏好是重要加分项，但它只能放大好资产，不能拯救没有兑现的故事。"
       ]
     }
+  };
+
+  data.homeWorkbench = {
+    quoteGroups: [
+      {
+        id: "indices",
+        label: "主要指数",
+        items: [
+          { name: "美国核心指数", symbol: "US", value: "5,284 / 18,612", change: "+42.1", changePct: "+0.80%", tone: "positive", href: marketUrl("us") },
+          { name: "香港恒指", symbol: "HK", value: "18,246", change: "-118", changePct: "-0.64%", tone: "negative", href: marketUrl("hk") },
+          { name: "日本东证", symbol: "JP", value: "2,746", change: "+18", changePct: "+0.67%", tone: "positive", href: marketUrl("jp") },
+          { name: "沪深核心", symbol: "CN", value: "3,086 / 9,412", change: "+11", changePct: "+0.36%", tone: "positive", href: marketUrl("cn") }
+        ]
+      },
+      {
+        id: "futures",
+        label: "主要期货",
+        items: [
+          { name: "纳指期货", symbol: "NQ", value: "18,744", change: "+0.43%", changePct: "风险偏好回暖", tone: "positive", href: trendUrl("us") },
+          { name: "标普期货", symbol: "ES", value: "5,301", change: "+0.28%", changePct: "现金流主线占优", tone: "positive", href: trendUrl("us") },
+          { name: "日经期货", symbol: "NK", value: "38,612", change: "-0.19%", changePct: "治理修复仍在", tone: "negative", href: trendUrl("jp") }
+        ]
+      },
+      {
+        id: "commodities",
+        label: "商品",
+        items: [
+          { name: "黄金", symbol: "XAU", value: "2,384", change: "+12", changePct: "+0.51%", tone: "positive", href: valuationUrl("us", { preset: "cashflow", band: "all", quality: "q80", margin: "m15", size: "all" }) },
+          { name: "WTI", symbol: "CL", value: "79.4", change: "-0.7", changePct: "-0.87%", tone: "negative", href: trendUrl("us") },
+          { name: "布油", symbol: "CO", value: "83.1", change: "-0.5", changePct: "-0.60%", tone: "negative", href: trendUrl("hk") }
+        ]
+      },
+      {
+        id: "fx",
+        label: "外汇",
+        items: [
+          { name: "USDJPY", symbol: "JPY", value: "154.2", change: "+0.22", changePct: "日股顺风仍在", tone: "positive", href: marketUrl("jp") },
+          { name: "EURUSD", symbol: "EUR", value: "1.073", change: "-0.001", changePct: "美元偏强", tone: "negative", href: trendUrl("us") },
+          { name: "USDCNH", symbol: "CNH", value: "7.24", change: "+0.03", changePct: "A股外资偏谨慎", tone: "positive", href: marketUrl("cn") }
+        ]
+      }
+    ],
+    headlines: [
+      { title: "中国制造链修复继续扩散，订单兑现比题材热度更重要", time: "09:10", tag: "中国市场", target: "政策修复 / 制造升级", href: marketUrl("cn") },
+      { title: "美股继续奖赏现金流兑现，二线成长开始分化", time: "09:24", tag: "美国市场", target: "自由现金流 / 指引", href: marketUrl("us") },
+      { title: "日股治理改善仍是主线，但回购兑现优先于口头承诺", time: "09:36", tag: "日本市场", target: "回购 / ROE", href: marketUrl("jp") },
+      { title: "港股修复依然要看南向承接，便宜不能脱离资产质量讨论", time: "09:48", tag: "香港市场", target: "南向资金 / 高股息", href: marketUrl("hk") }
+    ],
+    popularReads: [
+      { title: "今天先看哪一个市场", summary: "把四市场当前最优先的判断入口压缩成 1 分钟读完。", href: marketUrl("cn") },
+      { title: "合理估值不是便宜名单", summary: "估值页优先回答“便宜是否建立在兑现之上”。", href: valuationUrl("us", { preset: "cashflow", band: "all", quality: "q80", margin: "m15", size: "all" }) },
+      { title: "趋势页只看温度还不够", summary: "继续看因子分和跟踪样本，别把强势误判成安全。", href: trendUrl("us") },
+      { title: "筛选器先排除风险再选机会", summary: "用同一张表先做横向比较，再点进股票详情。", href: screenerUrl("cn") }
+    ],
+    calendar: {
+      economic: [
+        { time: "08:50", region: "JP", importance: "高", title: "日本机械订单", actual: "2.1%", forecast: "1.4%", previous: "0.8%" },
+        { time: "10:00", region: "CN", importance: "高", title: "中国工业增加值", actual: "-", forecast: "5.1%", previous: "4.8%" },
+        { time: "21:30", region: "US", importance: "高", title: "美国零售销售", actual: "-", forecast: "0.4%", previous: "0.2%" }
+      ],
+      earnings: [
+        { time: "12:00", region: "US", importance: "中", title: "Cascade Pay", actual: "-", forecast: "EPS 1.84", previous: "EPS 1.67", href: stockUrl("us-cascade-pay") },
+        { time: "15:30", region: "JP", importance: "中", title: "樱机制造", actual: "-", forecast: "OP +9%", previous: "OP +6%", href: stockUrl("jp-sakura-machinery") },
+        { time: "18:00", region: "HK", importance: "中", title: "港湾金控", actual: "-", forecast: "股息稳定", previous: "股息稳定", href: stockUrl("hk-harbor-finance") }
+      ]
+    },
+    rankings: {
+      gainers: ["cn-galaxy-energy", "us-cascade-pay", "jp-tokai-holdings", "hk-harbor-finance"],
+      losers: ["cn-orbit-medtech", "us-pioneer-cloud", "jp-hinode-logistics", "hk-orion-health"],
+      active: ["cn-sea-auto", "us-helix-robotics", "jp-sakura-machinery", "hk-victory-consumer"],
+      trending: ["cn-sunrise-industrials", "us-atlas-medical", "jp-koyo-banks", "hk-bauhinia-utilities"]
+    },
+    tools: [
+      { title: "Stock Screener", description: "按策略、风险、流动性和当前结论筛股票。", href: screenerUrl("cn") },
+      { title: "Earnings Calendar", description: "从财报节点切回股票详情和市场工作区。", href: trendUrl("us") },
+      { title: "Economic Calendar", description: "跟经济事件一起看市场逻辑和风险切换。", href: marketUrl("jp") },
+      { title: "Valuation Desk", description: "把估值带、安全边际和质量门槛放进一张表。", href: valuationUrl("us", { preset: "cashflow", band: "all", quality: "q80", margin: "m15", size: "all" }) },
+      { title: "Trend Desk", description: "看温度、因子、警报和跟踪样本，而不是只看热度。", href: trendUrl("cn") },
+      { title: "Market Boards", description: "机会榜和不能买榜并排看，先决定方向再决定仓位。", href: boardUrl("hk", "opportunity") }
+    ]
   };
 
   data.strategyCards = [

@@ -7,10 +7,23 @@
   }
 
   const summaryById = Object.fromEntries(data.stockSummaries.map((item) => [item.id, item]));
+  const detailById = data.stockDetails;
   const strategyById = Object.fromEntries(data.strategyCards.map((item) => [item.id, item]));
   const sceneById = Object.fromEntries(data.avoidSceneCards.map((item) => [item.id, item]));
   const valuationPresetById = Object.fromEntries(data.valuationPresets.map((item) => [item.id, item]));
   const trendByMarket = Object.fromEntries(data.trendSignals.map((item) => [item.market, item]));
+  const liquidityRank = { 高: 0, 中高: 1, 中: 2, 中低: 3, 低: 4 };
+  const liquidityValues = Array.from(new Set(data.stockSummaries.map((item) => item.liquidity)))
+    .sort((left, right) => (liquidityRank[left] ?? 99) - (liquidityRank[right] ?? 99));
+  const screenerStateValues = ["关注", "观察", "回避"];
+  const screenerPresets = [
+    { id: "all", label: "全部样本", summary: "查看当前市场全部可比样本，按结论与风险优先级排序。" },
+    { id: "focus", label: "关注样本", summary: "优先筛出当前已经进入“关注”结论的标的。" },
+    { id: "repair", label: "修复候选", summary: "聚焦政策修复、估值修复、治理修复与回购改善链条。" },
+    { id: "income", label: "股息/现金流", summary: "优先筛高股息或自由现金流更扎实的样本。" },
+    { id: "avoid", label: "回避排查", summary: "先把高风险或当前结论已转回避的样本排出来检查。" }
+  ];
+  const screenerPresetById = Object.fromEntries(screenerPresets.map((item) => [item.id, item]));
   const marketPathById = {
     cn: "market-cn.html",
     us: "market-us.html",
@@ -94,6 +107,29 @@
     return `trend.html?market=${safeMarket(marketId)}`;
   }
 
+  function screenerPageUrl(marketId, filters) {
+    const next = new URLSearchParams();
+    const config = filters || {};
+    const safeMarketId = safeMarket(marketId);
+
+    next.set("market", safeMarketId);
+
+    [
+      ["scrPreset", safeScreenerPreset(config.preset)],
+      ["scrStrategy", safeScreenerStrategy(safeMarketId, config.strategy)],
+      ["scrRisk", safeRisk(config.risk)],
+      ["scrLiquidity", safeScreenerLiquidity(config.liquidity)],
+      ["scrState", safeScreenerState(config.state)],
+      ["scrQuery", config.query && config.query.trim()]
+    ].forEach(([key, value]) => {
+      if (value && value !== "all") {
+        next.set(key, value);
+      }
+    });
+
+    return `screener.html?${next.toString()}`;
+  }
+
   function marketContextUrl(pageId, marketId) {
     if (pageId === "valuation") {
       return valuationPageUrl(marketId);
@@ -101,6 +137,10 @@
 
     if (pageId === "trend") {
       return trendPageUrl(marketId);
+    }
+
+    if (pageId === "screener") {
+      return screenerPageUrl(marketId, getScreenerState(safeMarket(currentParams().get("market"))));
     }
 
     return marketUrl(marketId);
@@ -139,6 +179,47 @@
       quality: current.get("valQuality"),
       margin: current.get("valMargin"),
       size: current.get("valSize")
+    };
+  }
+
+  function safeScreenerPreset(value) {
+    return screenerPresets.some((item) => item.id === value) ? value : "all";
+  }
+
+  function safeScreenerState(value) {
+    return screenerStateValues.includes(value) ? value : "all";
+  }
+
+  function safeScreenerLiquidity(value) {
+    return liquidityValues.includes(value) ? value : "all";
+  }
+
+  function safeScreenerStrategy(marketId, value) {
+    const market = data.markets[safeMarket(marketId)];
+    return market.strategyIds.includes(value) ? value : "all";
+  }
+
+  function getScreenerStrategyOptions(marketId) {
+    const market = data.markets[safeMarket(marketId)];
+    return [{ value: "all", label: "全部策略" }].concat(
+      market.strategyIds.map((strategyId) => ({
+        value: strategyId,
+        label: strategyById[strategyId].name
+      }))
+    );
+  }
+
+  function getScreenerState(marketId, params) {
+    const current = params || currentParams();
+    const safeMarketId = safeMarket(marketId || current.get("market"));
+
+    return {
+      preset: safeScreenerPreset(current.get("scrPreset")),
+      strategy: safeScreenerStrategy(safeMarketId, current.get("scrStrategy")),
+      risk: safeRisk(current.get("scrRisk")),
+      liquidity: safeScreenerLiquidity(current.get("scrLiquidity")),
+      state: safeScreenerState(current.get("scrState")),
+      query: (current.get("scrQuery") || "").trim()
     };
   }
 
@@ -182,6 +263,7 @@
       { id: "market", label: "市场页", href: marketUrl(activeMarket || "cn") },
       { id: "valuation", label: "合理股价估值", href: valuationPageUrl(activeMarket || "cn") },
       { id: "trend", label: "趋势", href: trendPageUrl(activeMarket || "cn") },
+      { id: "screener", label: "筛选器", href: screenerPageUrl(activeMarket || "cn") },
       { id: "stock", label: "股票详情", href: stockUrl(activeStockId || "cn-galaxy-energy") }
     ];
 
@@ -208,7 +290,7 @@
           </a>
           <nav class="nav-links">${links}</nav>
           <div class="header-actions">
-            <div class="search-hint">搜索示意：输入名称 / 代码 / 场景</div>
+            <div class="search-hint">搜索示意：输入名称 / 代码 / 场景 / 筛选器</div>
             <button class="button ghost subtle" data-message="登录/订阅流程在本轮原型中仅保留入口。">登录</button>
             <button class="button primary subtle" data-message="订阅页尚未展开，本轮先演示入口与状态。">订阅</button>
           </div>
@@ -227,7 +309,7 @@
         <div class="container">
           <div class="footer-card">
             <strong>原型说明</strong>
-            <p>${data.site.note} 当前更新时间：${data.site.updatedAt}。本轮正式入口为首页、四个独立市场页、合理股价估值页、趋势页和股票详情页。</p>
+            <p>${data.site.note} 当前更新时间：${data.site.updatedAt}。本轮正式入口为首页、四个独立市场页、合理股价估值页、趋势页、筛选器页和股票详情页。</p>
           </div>
         </div>
       </footer>
@@ -308,6 +390,117 @@
     return `<div class="empty-state">${message}</div>`;
   }
 
+  function matchesScreenerPreset(item, presetId) {
+    const detail = detailById[item.id];
+
+    if (!detail) {
+      return false;
+    }
+
+    switch (presetId) {
+      case "focus":
+        return detail.conclusion.state === "关注";
+      case "repair":
+        return /repair|recovery|rebound|reform|buyback/.test(item.strategyId);
+      case "income":
+        return /high-dividend|cashflow/.test(item.strategyId);
+      case "avoid":
+        return detail.conclusion.state === "回避" || item.riskLevel === "高";
+      default:
+        return true;
+    }
+  }
+
+  function getFilteredScreenerItems(marketId, state) {
+    const stateWeight = { 关注: 0, 观察: 1, 回避: 2 };
+    const riskWeight = { 低: 0, 中: 1, 高: 2 };
+    const query = (state.query || "").trim().toLowerCase();
+
+    return data.stockSummaries
+      .filter((item) => item.market === marketId)
+      .filter((item) => matchesScreenerPreset(item, state.preset))
+      .filter((item) => (state.strategy === "all" ? true : item.strategyId === state.strategy))
+      .filter((item) => (state.risk === "all" ? true : item.riskLevel === state.risk))
+      .filter((item) => (state.liquidity === "all" ? true : item.liquidity === state.liquidity))
+      .filter((item) => (state.state === "all" ? true : detailById[item.id].conclusion.state === state.state))
+      .filter((item) => {
+        if (!query) {
+          return true;
+        }
+
+        return [
+          item.name,
+          item.symbol,
+          item.industry,
+          strategyById[item.strategyId].name,
+          sceneById[item.primarySceneId].name
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((left, right) => {
+        const leftState = detailById[left.id].conclusion.state;
+        const rightState = detailById[right.id].conclusion.state;
+
+        if (stateWeight[leftState] !== stateWeight[rightState]) {
+          return stateWeight[leftState] - stateWeight[rightState];
+        }
+
+        if (riskWeight[left.riskLevel] !== riskWeight[right.riskLevel]) {
+          return riskWeight[left.riskLevel] - riskWeight[right.riskLevel];
+        }
+
+        return left.name.localeCompare(right.name, "zh-CN");
+      });
+  }
+
+  function renderScreenerRow(item) {
+    const market = data.markets[item.market];
+    const strategy = strategyById[item.strategyId];
+    const scene = sceneById[item.primarySceneId];
+    const detail = detailById[item.id];
+    const firstMetric = detail.metrics[0];
+    const secondMetric = detail.metrics[1];
+
+    return `
+      <tr>
+        <td class="valuation-stock">
+          <strong><a href="${stockUrl(item.id)}">${item.name}</a></strong>
+          <span>${item.symbol} · ${item.industry}</span>
+        </td>
+        <td>${market.shortName}</td>
+        <td>${pill(detail.conclusion.state, stateTone[detail.conclusion.state])}</td>
+        <td>
+          <div class="table-cell-stack">
+            <strong>${strategy.name}</strong>
+            <span>${detail.conclusion.summary}</span>
+          </div>
+        </td>
+        <td>
+          <div class="table-cell-stack">
+            <strong>${scene.name}</strong>
+            <span>${pill(`风险 ${item.riskLevel}`, riskTone[item.riskLevel])}</span>
+          </div>
+        </td>
+        <td>
+          <div class="table-cell-stack">
+            <strong>${firstMetric.value}</strong>
+            <span>${firstMetric.label}</span>
+            <span>${secondMetric.label}：${secondMetric.value}</span>
+          </div>
+        </td>
+        <td class="numeric-cell">${item.price}</td>
+        <td class="numeric-cell">
+          <div class="table-cell-stack">
+            <strong>${item.marketCap}</strong>
+            <span>流动性 ${item.liquidity}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   function renderCompactStock(item) {
     const summary = summaryById[item.stockId];
     const market = data.markets[summary.market];
@@ -366,10 +559,176 @@
     `;
   }
 
+  function renderHomeQuoteGroup(group) {
+    return `
+      <article class="quote-group">
+        <div class="quote-group-head">
+          <strong>${group.label}</strong>
+          <span>${group.items.length} 项</span>
+        </div>
+        <div class="quote-list">
+          ${group.items
+            .map(
+              (item) => `
+                <a class="quote-row" href="${item.href || "#"}">
+                  <div class="quote-meta">
+                    <strong>${item.name}</strong>
+                    <span>${item.symbol}</span>
+                  </div>
+                  <div class="quote-value">
+                    <strong>${item.value}</strong>
+                    <span class="${item.tone === "positive" ? "positive" : item.tone === "negative" ? "negative" : ""}">${item.change} ${item.changePct}</span>
+                  </div>
+                </a>
+              `
+            )
+            .join("")}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderHomeNewsItem(item) {
+    return `
+      <a class="news-item" href="${item.href || "#"}">
+        <div class="news-item-head">
+          <span class="news-meta">${item.time}</span>
+          ${pill(item.tag, "neutral")}
+        </div>
+        <strong>${item.title}</strong>
+        <span>${item.target}</span>
+      </a>
+    `;
+  }
+
+  function renderHomeReadItem(item) {
+    return `
+      <a class="read-item" href="${item.href || "#"}">
+        <strong>${item.title}</strong>
+        <span>${item.summary}</span>
+      </a>
+    `;
+  }
+
+  function renderCalendarRows(items) {
+    return items
+      .map(
+        (item) => `
+          <tr>
+            <td>${item.time}</td>
+            <td>${item.region}</td>
+            <td>${pill(item.importance === "高" ? "高" : item.importance === "中" ? "中" : item.importance, item.importance === "高" ? "danger" : item.importance === "中" ? "warning" : "neutral")}</td>
+            <td>
+              <div class="table-cell-stack">
+                <strong>${item.href ? `<a href="${item.href}">${item.title}</a>` : item.title}</strong>
+                <span>前值 ${item.previous || "-"}</span>
+              </div>
+            </td>
+            <td>${item.actual || "-"}</td>
+            <td>${item.forecast || "-"}</td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function renderHomeLeaderboardCard(title, stockIds, hint) {
+    return `
+      <article class="leaderboard-card">
+        <div class="quote-group-head">
+          <strong>${title}</strong>
+          <span>${hint}</span>
+        </div>
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table">
+            <tbody>
+              ${stockIds
+                .map((stockId, index) => {
+                  const summary = summaryById[stockId];
+                  const detail = detailById[stockId];
+                  if (!summary || !detail) {
+                    return "";
+                  }
+
+                  return `
+                    <tr>
+                      <td class="leaderboard-rank">${index + 1}</td>
+                      <td>
+                        <div class="table-cell-stack">
+                          <strong><a href="${stockUrl(stockId)}">${summary.name}</a></strong>
+                          <span>${strategyById[summary.strategyId].name}</span>
+                        </div>
+                      </td>
+                      <td>${pill(detail.conclusion.state, stateTone[detail.conclusion.state])}</td>
+                      <td class="numeric-cell">${summary.price}</td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderMarketWatchRow(stockId) {
+    const summary = summaryById[stockId];
+    const detail = detailById[stockId];
+
+    if (!summary || !detail) {
+      return "";
+    }
+
+    return `
+      <a class="watch-row" href="${stockUrl(stockId)}">
+        <div class="quote-meta">
+          <strong>${summary.name}</strong>
+          <span>${summary.symbol} · ${summary.industry}</span>
+        </div>
+        <div class="watch-row-side">
+          ${pill(detail.conclusion.state, stateTone[detail.conclusion.state])}
+          <strong>${summary.price}</strong>
+        </div>
+      </a>
+    `;
+  }
+
+  function renderSceneSignalRow(sceneId, marketId) {
+    const scene = sceneById[sceneId];
+
+    if (!scene) {
+      return "";
+    }
+
+    return `
+      <a class="read-item" href="${boardUrl(marketId, "avoid", { scene: scene.id })}">
+        <strong>${scene.name}</strong>
+        <span>${scene.signal}</span>
+      </a>
+    `;
+  }
+
   function renderHomePage() {
-    setTitle("首页原型");
-    const opportunityItems = data.rankingItems.filter((item) => item.type === "opportunity").slice(0, 4);
-    const avoidItems = data.rankingItems.filter((item) => item.type === "avoid").slice(0, 4);
+    setTitle("首页");
+    const homeData = data.homeWorkbench;
+    const marketMatrixRows = data.marketOrder
+      .map((marketId) => {
+        const market = data.markets[marketId];
+        const strategy = strategyById[market.strategyIds[0]];
+        const scene = sceneById[market.avoidSceneIds[0]];
+
+        return `
+          <tr>
+            <td>${market.shortName}</td>
+            <td>${market.headline}</td>
+            <td>${strategy.name}</td>
+            <td>${scene.name}</td>
+            <td><a class="button ghost subtle" href="${marketUrl(marketId)}">进入</a></td>
+          </tr>
+        `;
+      })
+      .join("");
 
     const marketCards = data.marketOrder
       .map((marketId) => {
@@ -377,33 +736,21 @@
         const strategy = strategyById[market.strategyIds[0]];
         const scene = sceneById[market.avoidSceneIds[0]];
         return `
-          <article class="card">
-            ${pill(market.shortName, "primary")}
-            <h3>${market.name}</h3>
-            <p>${market.headline}</p>
+          <article class="card home-market-card">
             <div class="pill-row">
-              ${pill(`当前主思路：${strategy.name}`, "success")}
-              ${pill(`先别碰：${scene.name}`, "danger")}
+              ${pill(market.shortName, "primary")}
+              ${pill(strategy.name, "success")}
             </div>
+            <h3>${market.name}</h3>
+            <p>${market.intro}</p>
+            <ul class="list-bullets compact-list">
+              <li><strong>判断顺序：</strong>${market.methodSummary}</li>
+              <li><strong>先排除：</strong>${scene.name}</li>
+            </ul>
             <div class="stock-row-footer">
               <span class="card-subtle">适合风格：${market.fitStyle}</span>
-              <a class="button ghost subtle" href="${marketUrl(marketId)}">进入市场页</a>
+              <a class="button ghost subtle" href="${marketUrl(marketId)}">看市场页</a>
             </div>
-          </article>
-        `;
-      })
-      .join("");
-
-    const teachingCards = data.marketOrder
-      .map((marketId) => {
-        const market = data.markets[marketId];
-        return `
-          <article class="card">
-            ${pill(market.shortName, "dark")}
-            <h3>${market.name}要怎么读</h3>
-            <p>${market.intro}</p>
-            <div class="pill-row">${pill(market.fitStyle, "neutral")}</div>
-            <ul class="list-bullets">${market.education.map((item) => `<li>${item}</li>`).join("")}</ul>
           </article>
         `;
       })
@@ -413,29 +760,148 @@
       "home",
       "cn",
       `
-        <section class="hero">
-          <div class="hero-grid">
-            <div>
-              <div class="eyebrow">P0 首页原型</div>
-              <h1>四个市场，不能只用一套买法。</h1>
-              <p>首页不是资讯堆砌页，而是决策入口。用户进来后要在 5 秒内理解：四个市场用不同逻辑判断，机会和风险必须并排看，估值和趋势拆成独立页面看。</p>
+        <section class="section home-terminal">
+          <div class="home-terminal-grid">
+            <article class="home-overview-panel">
+              <div class="eyebrow">Finance Workbench</div>
+              <h1 class="home-title">四大市场决策工作台</h1>
+              <p class="home-lead">用户进来先看市场状态，再看新闻、日历、榜单和工具入口。首页不做营销页，而是直接告诉用户今天从哪里开始看。</p>
               <div class="button-row">
-                <a class="button primary" href="${marketUrl("cn")}">从中国市场开始</a>
-                <a class="button secondary" href="${valuationPageUrl("cn", data.markets.cn.valuationDefaults)}">先看合理估值</a>
-                <a class="button ghost" href="${trendPageUrl("cn")}">看趋势页</a>
+                <a class="button primary" href="${marketUrl("cn")}">打开市场页</a>
+                <a class="button secondary" href="${screenerPageUrl("cn")}">打开筛选器</a>
+                <a class="button ghost" href="${valuationPageUrl("us", data.markets.us.valuationDefaults)}">看合理估值</a>
+                <a class="button ghost" href="${trendPageUrl("us")}">看趋势页</a>
               </div>
-              <div class="stats-grid">
-                <div class="stat-card"><strong>4</strong><span>独立市场入口页</span></div>
-                <div class="stat-card"><strong>2</strong><span>双榜单筛选模块</span></div>
-                <div class="stat-card"><strong>1</strong><span>独立估值工作台</span></div>
-                <div class="stat-card"><strong>1</strong><span>独立趋势页</span></div>
+              <div class="terminal-kpis">
+                <div class="stat-card"><strong>4</strong><span>核心市场</span></div>
+                <div class="stat-card"><strong>4</strong><span>报价分组</span></div>
+                <div class="stat-card"><strong>2</strong><span>并行榜单</span></div>
+                <div class="stat-card"><strong>3</strong><span>独立工具页</span></div>
               </div>
+            </article>
+            <article class="market-matrix-panel">
+              <div class="workspace-head">
+                <div>
+                  <div class="section-marker">Market Matrix</div>
+                  <h2>先决定看哪个市场</h2>
+                  <p>四个市场不用同一套方法。先看主逻辑和最该排除的坑，再进入对应工作区。</p>
+                </div>
+              </div>
+              <div class="matrix-table-wrap">
+                <table class="matrix-table">
+                  <thead>
+                    <tr>
+                      <th>市场</th>
+                      <th>当前主线</th>
+                      <th>先看什么</th>
+                      <th>先排除什么</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>${marketMatrixRows}</tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+          <div class="quote-board">
+            ${homeData.quoteGroups.map(renderHomeQuoteGroup).join("")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Headlines</div>
+              <h2>今日热点与重要日历</h2>
+              <p>把“发生了什么”和“什么时候发生”并排放，避免用户来回切页找上下文。</p>
             </div>
-            <div class="hero-side">
-              <div class="floating-card"><strong>首页必须回答的 3 个问题</strong><span>现在应该去哪个市场看？用什么逻辑看？今天最该先避开什么？</span></div>
-              <div class="floating-card"><strong>本轮原型交互范围</strong><span>支持四市场独立切换、市场页双榜单筛选、独立估值页筛选、趋势页跳转和详情页状态演示。</span></div>
-              <div class="floating-card"><strong>原型输出定位</strong><span>HTML 中保真结构稿，可直接作为后续 Figma 还原和前端实现基线。</span></div>
+            <a class="button ghost subtle" href="${trendPageUrl("us")}">看趋势页</a>
+          </div>
+          <div class="news-calendar-grid">
+            <article class="section-panel news-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">热点新闻</strong>
+                  <p>保持短句、标签和相关市场，先让人快速扫完。</p>
+                </div>
+              </div>
+              <div class="news-list">
+                ${homeData.headlines.map(renderHomeNewsItem).join("")}
+              </div>
+              <div class="read-list">
+                ${homeData.popularReads.map(renderHomeReadItem).join("")}
+              </div>
+            </article>
+            <article class="section-panel calendar-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">重要日历</strong>
+                  <p>经济事件和财报事件拆开看，直接服务今天的市场判断。</p>
+                </div>
+              </div>
+              <div class="calendar-columns">
+                <div class="calendar-card">
+                  <strong class="panel-title">经济事件</strong>
+                  <div class="calendar-table-wrap">
+                    <table class="calendar-table">
+                      <thead>
+                        <tr><th>时间</th><th>地区</th><th>级别</th><th>事件</th><th>实际</th><th>预期</th></tr>
+                      </thead>
+                      <tbody>${renderCalendarRows(homeData.calendar.economic)}</tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="calendar-card">
+                  <strong class="panel-title">财报事件</strong>
+                  <div class="calendar-table-wrap">
+                    <table class="calendar-table">
+                      <thead>
+                        <tr><th>时间</th><th>地区</th><th>级别</th><th>公司</th><th>实际</th><th>预期</th></tr>
+                      </thead>
+                      <tbody>${renderCalendarRows(homeData.calendar.earnings)}</tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Boards</div>
+              <h2>热门榜单</h2>
+              <p>榜单继续保留高密度比较，先看状态和价格，再决定要不要点进详情。</p>
             </div>
+          </div>
+          <div class="leaderboard-grid">
+            ${renderHomeLeaderboardCard("Top Gainers", homeData.rankings.gainers, "修复 / 兑现")}
+            ${renderHomeLeaderboardCard("Top Losers", homeData.rankings.losers, "高风险 / 回避")}
+            ${renderHomeLeaderboardCard("Most Active", homeData.rankings.active, "高关注度")}
+            ${renderHomeLeaderboardCard("Trending Stocks", homeData.rankings.trending, "跟踪名单")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Tools</div>
+              <h2>专题 / 工具入口</h2>
+              <p>工具单独作为一层，不和数据流混在一起，方便用户直接进工作区。</p>
+            </div>
+          </div>
+          <div class="tool-grid">
+            ${homeData.tools
+              .map(
+                (item) => `
+                  <a class="tool-card" href="${item.href || "#"}">
+                    <strong>${item.title}</strong>
+                    <span>${item.description}</span>
+                  </a>
+                `
+              )
+              .join("")}
           </div>
         </section>
 
@@ -443,81 +909,11 @@
           <div class="section-head">
             <div>
               <div class="section-marker">Markets</div>
-              <h2>四市场总览卡片</h2>
-              <p>每张卡片同时告诉用户：这个市场该怎么看、当前主思路是什么、今天最该避开什么。</p>
+              <h2>四市场快照</h2>
+              <p>继续保留四市场差异，但放到更靠下的位置，避免一上来就被长文案打断。</p>
             </div>
-            <a class="button ghost subtle" href="${marketUrl("us")}">看市场模板</a>
           </div>
           <div class="market-grid">${marketCards}</div>
-        </section>
-
-        <section class="section">
-          <div class="section-head">
-            <div>
-              <div class="section-marker">Boards</div>
-              <h2>机会与风险并列展示</h2>
-              <p>首页继续保留摘要能力，但完整筛选沉到市场页，独立估值和趋势改成顶部入口页。</p>
-            </div>
-          </div>
-          <div class="ranking-panels">
-            <div class="panel opportunity">
-              <div class="panel-head">
-                <div><strong class="panel-title">今日机会榜摘要</strong><p>优先展示逻辑、催化与风险都能讲清楚的样本。</p></div>
-                <a class="button ghost subtle" href="${boardUrl("cn", "opportunity", {})}">去市场页查看</a>
-              </div>
-              <div class="stock-list">${opportunityItems.map(renderCompactStock).join("")}</div>
-            </div>
-            <div class="panel risk">
-              <div class="panel-head">
-                <div><strong class="panel-title">今日不能买榜摘要</strong><p>情绪末端、便宜陷阱和流动性风险优先亮出来。</p></div>
-                <a class="button warning subtle" href="${boardUrl("cn", "avoid", {})}">去市场页查看</a>
-              </div>
-              <div class="stock-list">${avoidItems.map(renderCompactStock).join("")}</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="section">
-          <div class="section-head">
-            <div>
-              <div class="section-marker">Teaching</div>
-              <h2>思路教学区</h2>
-              <p>用更明确的信息架构，告诉用户四个市场适合什么风格、应该避开哪些常见误判。</p>
-            </div>
-          </div>
-          <div class="teaching-grid">${teachingCards}</div>
-        </section>
-
-        <section class="section">
-          <div class="section-head">
-            <div>
-              <div class="section-marker">Subscription</div>
-              <h2>订阅转化区</h2>
-              <p>未接入真实支付，但保留免费与付费权益对比，让后续商业化设计有承接位置。</p>
-            </div>
-          </div>
-          <div class="subscription-grid">
-            <article class="subscription-card">
-              <strong class="card-title">免费用户</strong>
-              <p>可查看首页摘要、市场主线、双榜单公开样本和部分详情页内容。</p>
-              <ul class="list-bullets">
-                <li>四市场总览与基础教学</li>
-                <li>市场页双榜单公开筛选</li>
-                <li>独立估值页公开摘要</li>
-              </ul>
-              <div class="button-row"><button class="button ghost" data-message="免费路径已默认开放。">继续浏览</button></div>
-            </article>
-            <article class="subscription-card highlight">
-              <strong class="card-title">订阅会员</strong>
-              <p>解锁完整的不能买判断、更多估值筛选组合、提醒能力和更细的市场场景解释。</p>
-              <ul class="list-bullets">
-                <li>完整场景判断与替代建议</li>
-                <li>自选、提醒、权限拦截演示挂点</li>
-                <li>更多估值维度与趋势联动</li>
-              </ul>
-              <div class="button-row"><button class="button secondary" data-message="订阅页将在下一轮补全完整态。">查看权益</button></div>
-            </article>
-          </div>
         </section>
       `
     );
@@ -859,6 +1255,10 @@
     const market = data.markets[marketId];
     const opportunityState = getBoardState("op", marketId);
     const avoidState = getBoardState("av", marketId);
+    const opportunityCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "opportunity").length;
+    const avoidCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "avoid").length;
+    const featuredWatchRows = market.opportunityStockIds.slice(0, 4).map(renderMarketWatchRow).join("");
+    const featuredSceneRows = market.avoidSceneIds.slice(0, 4).map((sceneId) => renderSceneSignalRow(sceneId, marketId)).join("");
 
     const strategyCards = market.strategyIds
       .map((strategyId) => {
@@ -906,33 +1306,36 @@
       })
       .join("");
 
-    setTitle(`${market.name}原型`);
+    setTitle(`${market.name}`);
     renderShell(
       "market",
       marketId,
       `
         <section class="section">
-          <div class="banner-grid">
-            <div class="banner-card">
+          <div class="banner-grid market-hero-grid">
+            <div class="banner-card market-head-panel">
               <div class="eyebrow">${market.name}</div>
               <h1 class="page-title">${market.headline}</h1>
               <p class="page-subtitle">${market.currentState}</p>
               <div class="button-row">
                 <a class="button secondary" href="#opportunity-board">看今日机会榜</a>
                 <a class="button ghost" href="#avoid-board">看今日不能买榜</a>
+                <a class="button ghost" href="${screenerPageUrl(marketId)}">打开筛选器</a>
                 <a class="button primary" href="${valuationPageUrl(marketId, market.valuationDefaults)}">去合理估值页</a>
                 <a class="button ghost" href="${trendPageUrl(marketId)}">去趋势页</a>
               </div>
             </div>
-            <div class="banner-side">
+            <div class="banner-side market-glance-grid">
               <div class="banner-stat"><strong>${market.fitStyle}</strong><span>适合风格</span></div>
               <div class="banner-stat"><strong>${market.pitfall}</strong><span>最易踩坑类型</span></div>
+              <div class="banner-stat"><strong>${opportunityCount} / ${avoidCount}</strong><span>公开机会 / 风险样本</span></div>
+              <div class="banner-stat"><strong>${valuationPresetById[market.valuationDefaults.preset].label}</strong><span>默认估值视角</span></div>
             </div>
           </div>
         </section>
 
         <section class="section">
-          <div class="market-grid">
+          <div class="market-summary-grid">
             <article class="card">
               ${pill("判断顺序", "primary")}
               <h3>先看什么</h3>
@@ -958,11 +1361,59 @@
         </section>
 
         <section class="section">
+          <div class="market-desk-grid">
+            <article class="section-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">代表跟踪样本</strong>
+                  <p>先看当前市场里最值得继续跟踪的公开样本，再决定要不要进入筛选器或详情页。</p>
+                </div>
+                <a class="button ghost subtle" href="${screenerPageUrl(marketId)}">去筛选器</a>
+              </div>
+              <div class="watch-list">
+                ${featuredWatchRows}
+              </div>
+            </article>
+            <article class="section-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">先排除的风险场景</strong>
+                  <p>先把最常见的错误买点排除掉，再回到机会样本做对比。</p>
+                </div>
+              </div>
+              <div class="read-list">
+                ${featuredSceneRows}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Workspace</div>
+              <h2>市场工作区</h2>
+              <p>${market.name}先把机会榜和不能买榜并排摆出来；如果要继续看估值、趋势或更深的条件组合，再去顶部独立工具页。</p>
+            </div>
+          </div>
+          <div class="filter-panel board-hub">
+            <div class="workspace-head">
+              <strong>双榜单主工作区</strong>
+              <span>左边找方向，右边先避坑；筛选器、合理估值和趋势都保持单独页面，减少视图干扰。</span>
+            </div>
+            <div class="board-grid">
+              ${renderBoardPanel("opportunity", marketId, opportunityState)}
+              ${renderBoardPanel("avoid", marketId, avoidState)}
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
           <div class="section-head">
             <div>
               <div class="section-marker">Strategy</div>
               <h2>要怎么买</h2>
-              <p>每张思路卡都统一拆成适用场景、必须验证、最容易看错什么和对应样本，四个市场只换方法论，不换结构骨架。</p>
+              <p>方法卡放在工作区后面，让用户先看到结果，再回头看方法论和验证标准。</p>
             </div>
           </div>
           <div class="market-grid">${strategyCards}</div>
@@ -973,30 +1424,10 @@
             <div>
               <div class="section-marker">Avoid</div>
               <h2>不能买什么</h2>
-              <p>每个风险场景都明确说清为什么危险、什么时候能重看、替代打法和对应样本，避免只剩一句“先别买”。</p>
+              <p>风险场景继续完整保留，但视觉上更像工作台的知识面板，而不是首页式营销卡片。</p>
             </div>
           </div>
           <div class="market-grid">${sceneCards}</div>
-        </section>
-
-        <section class="section">
-          <div class="section-head">
-            <div>
-              <div class="section-marker">Workspace</div>
-              <h2>市场筛选演示区</h2>
-              <p>${market.name} 继续保留机会榜与不能买榜的双栏主工作区；合理估值和趋势已经独立成顶部导航页面，便于分开深挖。</p>
-            </div>
-          </div>
-          <div class="filter-panel board-hub">
-            <div class="workspace-head">
-              <strong>双榜单主工作区</strong>
-              <span>左栏找方向，右栏先避坑；如果要继续看合理估值或趋势节奏，请从顶部导航进入独立页面。</span>
-            </div>
-            <div class="board-grid">
-              ${renderBoardPanel("opportunity", marketId, opportunityState)}
-              ${renderBoardPanel("avoid", marketId, avoidState)}
-            </div>
-          </div>
         </section>
 
         <section class="section">
@@ -1324,6 +1755,207 @@
     );
   }
 
+  function bindScreenerPanel(marketId) {
+    const state = getScreenerState(marketId);
+    const body = app.querySelector("#screener-body");
+    const count = app.querySelector("#screener-count");
+    const summary = app.querySelector("#screener-summary");
+    const resultTotal = app.querySelector("#screener-result-total");
+    const activePreset = app.querySelector("#screener-active-preset");
+
+    if (!body || !count || !summary || !resultTotal || !activePreset) {
+      return;
+    }
+
+    function syncControls() {
+      app.querySelectorAll("[data-screener-preset]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.screenerPreset === state.preset);
+      });
+
+      app.querySelector("#scr-query").value = state.query;
+      app.querySelector("#scr-strategy").value = state.strategy;
+      app.querySelector("#scr-risk").value = state.risk;
+      app.querySelector("#scr-liquidity").value = state.liquidity;
+      app.querySelector("#scr-state").value = state.state;
+    }
+
+    function syncQuery() {
+      updateQueryGroup({
+        scrPreset: state.preset,
+        scrStrategy: state.strategy,
+        scrRisk: state.risk,
+        scrLiquidity: state.liquidity,
+        scrState: state.state,
+        scrQuery: state.query
+      });
+    }
+
+    function renderTable() {
+      const items = getFilteredScreenerItems(marketId, state);
+      const preset = screenerPresetById[state.preset];
+
+      body.innerHTML = items.length
+        ? items.map(renderScreenerRow).join("")
+        : `<tr><td colspan="8">${renderEmpty("当前筛选条件下，没有符合要求的样本。")}</td></tr>`;
+
+      count.textContent = `当前结果：${items.length} 只`;
+      summary.textContent = preset.summary;
+      resultTotal.textContent = `${items.length} 只`;
+      activePreset.textContent = preset.label;
+    }
+
+    app.querySelectorAll("[data-screener-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.preset = button.dataset.screenerPreset;
+        renderTable();
+        syncControls();
+        syncQuery();
+      });
+    });
+
+    app.querySelectorAll("[data-screener-filter]").forEach((field) => {
+      const eventName = field.tagName === "INPUT" ? "input" : "change";
+
+      field.addEventListener(eventName, () => {
+        const filterKey = field.dataset.screenerFilter;
+        state[filterKey] = filterKey === "query" ? field.value : (field.value || "all");
+        renderTable();
+        syncQuery();
+      });
+    });
+
+    const resetButton = app.querySelector("[data-screener-reset]");
+    if (resetButton) {
+      resetButton.addEventListener("click", () => {
+        state.preset = "all";
+        state.strategy = "all";
+        state.risk = "all";
+        state.liquidity = "all";
+        state.state = "all";
+        state.query = "";
+        renderTable();
+        syncControls();
+        syncQuery();
+        showToast("已恢复当前市场默认筛选条件。");
+      });
+    }
+
+    const saveButton = app.querySelector("[data-screener-save]");
+    if (saveButton) {
+      saveButton.addEventListener("click", () => {
+        showToast(`已保存 ${data.markets[marketId].shortName} 市场筛选器示意。`);
+      });
+    }
+
+    syncControls();
+    renderTable();
+  }
+
+  function renderScreenerPage() {
+    const marketId = safeMarket(currentParams().get("market"));
+    const market = data.markets[marketId];
+    const state = getScreenerState(marketId);
+    const totalItems = data.stockSummaries.filter((item) => item.market === marketId).length;
+    const filteredItems = getFilteredScreenerItems(marketId, state);
+    const preset = screenerPresetById[state.preset];
+    const strategyOptions = getScreenerStrategyOptions(marketId);
+    const featuredStockId = filteredItems[0] ? filteredItems[0].id : (market.opportunityStockIds[0] || market.avoidStockIds[0]);
+
+    setTitle(`${market.name}筛选器`);
+    renderShell(
+      "screener",
+      marketId,
+      `
+        <section class="section">
+          <div class="banner-grid">
+            <div class="banner-card">
+              <div class="eyebrow">${market.name} / Screener</div>
+              <h1 class="page-title">筛选器</h1>
+              <p class="page-subtitle">参考 Investing 的工作台结构，把策略、风险、流动性与当前结论放进同一张比较表里，先筛出值得跟踪或优先排除的样本。</p>
+              <div class="button-row">
+                <a class="button secondary" href="${marketUrl(marketId)}">回到市场页</a>
+                <a class="button ghost" href="${valuationPageUrl(marketId, market.valuationDefaults)}">查看合理估值</a>
+                <a class="button primary" href="${stockUrl(featuredStockId)}">打开代表样本</a>
+              </div>
+            </div>
+            <div class="banner-side">
+              <div class="banner-stat"><strong id="screener-result-total">${filteredItems.length} 只</strong><span>当前筛中结果</span></div>
+              <div class="banner-stat"><strong>${totalItems} 只</strong><span>${market.shortName}市场总样本</span></div>
+              <div class="banner-stat"><strong id="screener-active-preset">${preset.label}</strong><span>当前筛选视角</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="filter-panel">
+            <div class="workspace-head">
+              <div>
+                <div class="section-marker">Screener Workspace</div>
+                <h2>${market.shortName}市场股票筛选器</h2>
+                <p id="screener-summary">${preset.summary}</p>
+              </div>
+              <div class="button-row">
+                <button class="button ghost subtle" data-screener-save>保存筛选器</button>
+                <button class="button secondary subtle" data-screener-reset>恢复默认</button>
+              </div>
+            </div>
+            <div class="preset-row">
+              ${screenerPresets.map((item) => `<button class="preset-chip${item.id === state.preset ? " is-active" : ""}" data-screener-preset="${item.id}">${item.label}</button>`).join("")}
+            </div>
+            <div class="screener-toolbar">
+              <div class="field screener-search">
+                <label for="scr-query">快速搜索</label>
+                <input id="scr-query" class="text-input" type="text" value="${state.query}" placeholder="名称 / 代码 / 行业 / 风险场景" data-screener-filter="query">
+              </div>
+              <div class="field">
+                <label for="scr-strategy">策略</label>
+                <select id="scr-strategy" data-screener-filter="strategy">${optionList(strategyOptions, state.strategy)}</select>
+              </div>
+              <div class="field">
+                <label for="scr-risk">风险</label>
+                <select id="scr-risk" data-screener-filter="risk">${optionList([{ value: "all", label: "全部风险" }].concat(riskValues.map((value) => ({ value, label: `风险 ${value}` }))), state.risk)}</select>
+              </div>
+              <div class="field">
+                <label for="scr-liquidity">流动性</label>
+                <select id="scr-liquidity" data-screener-filter="liquidity">${optionList([{ value: "all", label: "全部流动性" }].concat(liquidityValues.map((value) => ({ value, label: value }))), state.liquidity)}</select>
+              </div>
+              <div class="field">
+                <label for="scr-state">当前结论</label>
+                <select id="scr-state" data-screener-filter="state">${optionList([{ value: "all", label: "全部结论" }].concat(screenerStateValues.map((value) => ({ value, label: value }))), state.state)}</select>
+              </div>
+            </div>
+            <div class="board-meta">
+              <span id="screener-count">当前结果：${filteredItems.length} 只</span>
+              <span>默认按结论优先级、风险等级和名称排序，方便像 Investing 一样先做横向比较再点进详情。</span>
+            </div>
+            <div class="valuation-table-wrap">
+              <table class="valuation-table">
+                <thead>
+                  <tr>
+                    <th>公司</th>
+                    <th>市场</th>
+                    <th>当前结论</th>
+                    <th>主策略</th>
+                    <th>风险场景</th>
+                    <th>关键指标</th>
+                    <th>价格</th>
+                    <th>市值 / 流动性</th>
+                  </tr>
+                </thead>
+                <tbody id="screener-body">
+                  ${filteredItems.map(renderScreenerRow).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      `,
+      { stockId: featuredStockId }
+    );
+
+    return marketId;
+  }
+
   function renderStockPage() {
     const stockId = safeStock(currentParams().get("stock"));
     const summary = summaryById[stockId];
@@ -1479,6 +2111,9 @@
     bindValuationPanel(marketId);
   } else if (page === "trend") {
     renderTrendPage();
+  } else if (page === "screener") {
+    const marketId = renderScreenerPage();
+    bindScreenerPanel(marketId);
   } else if (page === "stock") {
     renderStockPage();
   }
