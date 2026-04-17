@@ -2289,10 +2289,335 @@
     `;
   }
 
+  function renderUsMarketPage(marketId) {
+    const market = data.markets[marketId];
+    const pageData = data.usMarketPage;
+    const trend = trendByMarket[marketId];
+    const opportunityState = getBoardState("op", marketId);
+    const avoidState = getBoardState("av", marketId);
+    const opportunityCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "opportunity").length;
+    const avoidCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "avoid").length;
+    const featuredWatchRows = market.opportunityStockIds.slice(0, 4).map(renderMarketWatchRow).join("");
+    const featuredSceneRows = market.avoidSceneIds.slice(0, 4).map((sceneId) => renderSceneSignalRow(sceneId, marketId)).join("");
+    const toolActionById = Object.fromEntries((pageData.toolActions || []).map((item) => [item.id, item]));
+
+    const heroActions = (pageData.heroActionIds || [])
+      .map((actionId) => toolActionById[actionId])
+      .filter(Boolean)
+      .map((action) => `<a class="button ${action.tone || "ghost"}" href="${action.href}">${action.label}</a>`)
+      .join("");
+
+    const quickCards = (pageData.quickCards || [])
+      .map((card) => `
+        <article class="section-panel us-market-quick-card${card.id === "avoid" ? " is-risk" : ""}">
+          <div class="pill-row">
+            ${pill(card.eyebrow, card.tone === "danger" ? "danger" : "primary")}
+            ${pill(card.id === "avoid" ? "先排除" : "先看框架", "neutral")}
+          </div>
+          <h3>${card.title}</h3>
+          <p>${card.summary}</p>
+          <ul class="list-bullets us-market-quick-list">
+            ${card.bullets.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+          <div class="stock-row-footer">
+            <span class="card-subtle">${card.id === "avoid" ? `最怕：${market.pitfall}` : market.methodSummary}</span>
+            <a class="button ghost subtle" href="${card.href}">${card.eyebrow}</a>
+          </div>
+        </article>
+      `)
+      .join("");
+
+    const anchorNav = (pageData.anchorNav || [])
+      .map((item, index) => `<a class="us-market-anchor-link${index === 0 ? " is-active" : ""}" data-us-anchor-link="${item.id}" href="${item.href}">${item.label}</a>`)
+      .join("");
+
+    const decisionSteps = (pageData.decisionSteps || [])
+      .map((item) => `
+        <div class="us-market-step">
+          <span class="us-market-step-index">${item.step}</span>
+          <div>
+            <strong>${item.title}</strong>
+            <p>${item.summary}</p>
+          </div>
+        </div>
+      `)
+      .join("");
+
+    const strategyCards = market.strategyIds
+      .map((strategyId) => {
+        const strategy = strategyById[strategyId];
+        if (!strategy) {
+          return "";
+        }
+
+        const strategyAction = pageData.strategyActions && pageData.strategyActions[strategy.id];
+
+        return `
+          <article class="card us-market-strategy-card">
+            <div class="pill-row">
+              ${pill(strategy.name, "primary")}
+              ${pill(strategy.cycle, "neutral")}
+            </div>
+            <h3>${strategy.summary}</h3>
+            <ul class="list-bullets">
+              <li><strong>适合谁看：</strong>${strategy.fitFor}</li>
+              <li><strong>必须验证：</strong>${strategy.mustConfirm}</li>
+              <li><strong>最容易误判：</strong>${strategy.falsePositive}</li>
+            </ul>
+            <div class="stock-row-footer">
+              <span class="card-subtle">核心问题：${strategy.coreQuestion}</span>
+              <div class="button-row">
+                <a class="button ghost subtle" href="${boardUrl(marketId, "opportunity", { strategy: strategy.id })}">看机会样本</a>
+                ${strategyAction ? `<a class="button ghost subtle" href="${strategyAction.href}">${strategyAction.label}</a>` : ""}
+              </div>
+            </div>
+            ${renderSampleStockLinks(strategy.sampleStockIds)}
+          </article>
+        `;
+      })
+      .join("");
+
+    const riskCards = market.avoidSceneIds
+      .map((sceneId) => {
+        const scene = sceneById[sceneId];
+        if (!scene) {
+          return "";
+        }
+
+        return `
+          <article class="card us-market-risk-card">
+            <div class="pill-row">
+              ${pill(scene.name, "danger")}
+              ${pill(`风险 ${scene.level}`, riskTone[scene.level])}
+            </div>
+            <h3>${scene.summary}</h3>
+            <ul class="list-bullets">
+              <li><strong>危险信号：</strong>${scene.signal}</li>
+              <li><strong>为什么危险：</strong>${scene.whyDangerous}</li>
+              <li><strong>何时重看：</strong>${scene.reentrySignal}</li>
+              <li><strong>替代方向：</strong>${scene.substitute}</li>
+            </ul>
+            <div class="stock-row-footer">
+              <span class="card-subtle">这是美股里最容易把“高估值 + 兑现落空”放大的场景之一。</span>
+              <a class="button warning subtle" href="${boardUrl(marketId, "avoid", { scene: scene.id })}">看回避样本</a>
+            </div>
+            ${renderSampleStockLinks(scene.sampleStockIds)}
+          </article>
+        `;
+      })
+      .join("");
+
+    const nextActions = (pageData.nextActionIds || [])
+      .map((actionId) => toolActionById[actionId])
+      .filter(Boolean)
+      .map((action) => `
+        <a class="tool-card us-market-tool-card${action.tone === "primary" ? " is-primary" : action.tone === "secondary" ? " is-secondary" : ""}" href="${action.href}">
+          <strong>${action.label}</strong>
+          <span>${action.description}</span>
+        </a>
+      `)
+      .join("");
+
+    setTitle(`${market.name}`);
+    renderShell(
+      "market",
+      marketId,
+      `
+        <section class="section us-market-section" id="us-overview" data-us-anchor-target>
+          <div class="banner-grid us-market-hero-grid">
+            <div class="banner-card us-market-hero-card">
+              <div class="eyebrow">${market.name}</div>
+              <h1 class="page-title">${market.headline}</h1>
+              <p class="page-subtitle">${pageData.heroNote}</p>
+              <div class="pill-row us-market-tag-row">${pageData.heroTags.map((tag) => pill(tag, "neutral")).join("")}</div>
+              <p class="us-market-hero-note">${market.currentState}</p>
+              <div class="button-row">${heroActions}</div>
+            </div>
+            <article class="section-panel us-market-status-card">
+              <div class="pill-row">
+                ${pill(trend.regime.label, "primary")}
+                ${pill(`温度 ${trend.regime.temperature}/100`, "dark")}
+              </div>
+              <h3>市场状态卡</h3>
+              <p>${trend.regime.summary}</p>
+              <div class="us-market-status-grid">
+                ${pageData.statusMetrics.map((item) => `
+                  <div class="us-market-metric">
+                    <span>${item.label}</span>
+                    <strong>${item.value}</strong>
+                    <small>${item.note}</small>
+                  </div>
+                `).join("")}
+              </div>
+              <div class="us-market-status-notes">
+                <div><strong>顺风：</strong>${trend.leaders[0]}</div>
+                <div><strong>警惕：</strong>${trend.warnings[0]}</div>
+              </div>
+              <div class="us-market-status-footer">
+                <span>公开机会 / 风险样本 ${opportunityCount} / ${avoidCount}</span>
+                <span>${market.fitStyle}</span>
+              </div>
+            </article>
+          </div>
+          <div class="us-market-quick-grid">
+            ${quickCards}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Preview</div>
+              <h2>先把机会和风险并排摆出来</h2>
+              <p>保留现有 repo 的机会 / 风险并列入口，让用户先建立方向感，再往下看判断框架与执行动作。</p>
+            </div>
+          </div>
+          <div class="market-desk-grid us-market-preview-grid">
+            <article class="section-panel us-market-preview-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">机会预览</strong>
+                  <p>优先跟踪业绩兑现、现金流托底和低拥挤修复的公开样本。</p>
+                </div>
+                <a class="button ghost subtle" href="#opportunity-board">去机会榜</a>
+              </div>
+              <div class="watch-list">
+                ${featuredWatchRows}
+              </div>
+            </article>
+            <article class="section-panel us-market-preview-panel is-risk">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">风险预览</strong>
+                  <p>先排除最容易把高估值主线打回原形的踩坑场景。</p>
+                </div>
+                <a class="button warning subtle" href="#avoid-board">去不能买榜</a>
+              </div>
+              <div class="read-list">
+                ${featuredSceneRows}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section us-market-anchor-wrap">
+          <nav class="us-market-anchor" aria-label="美国市场页导航">
+            <div class="us-market-anchor-list">
+              ${anchorNav}
+            </div>
+          </nav>
+        </section>
+
+        <section class="section us-market-section" id="us-buy" data-us-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Framework</div>
+              <h2>怎么买</h2>
+              <p>先回答“什么值得看”，再决定应该用财报、估值还是趋势工具继续往下筛。</p>
+            </div>
+          </div>
+          <div class="us-market-framework-grid">
+            <article class="section-panel us-market-playbook">
+              <div class="pill-row">
+                ${pill("判断顺序", "dark")}
+                ${pill("机会发现 + 判断框架 + 操作指导", "neutral")}
+              </div>
+              <h3>美股不是先看故事，而是先看兑现质量</h3>
+              <p>${market.methodSummary}</p>
+              <div class="us-market-step-list">
+                ${decisionSteps}
+              </div>
+              <div class="us-market-focus-grid">
+                <article class="aside-panel us-market-focus-card">
+                  ${pill("合理估值页", "neutral")}
+                  <strong>估值先确认什么</strong>
+                  <p>${market.valuationFocus}</p>
+                  <a class="button ghost subtle" href="${toolActionById.valuation.href}">去估值页</a>
+                </article>
+                <article class="aside-panel us-market-focus-card">
+                  ${pill("趋势页", "neutral")}
+                  <strong>趋势先确认什么</strong>
+                  <p>${market.trendFocus}</p>
+                  <a class="button ghost subtle" href="${toolActionById.trend.href}">去趋势页</a>
+                </article>
+              </div>
+            </article>
+            <div class="us-market-strategy-grid">
+              ${strategyCards}
+            </div>
+          </div>
+        </section>
+
+        <section class="section us-market-section" id="us-avoid" data-us-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Avoid</div>
+              <h2>不能买什么</h2>
+              <p>美股最容易亏钱的，不是方向完全看反，而是在高估值阶段替没有兑现的基本面找借口。</p>
+            </div>
+          </div>
+          <div class="warning-box us-market-risk-summary">
+            <div class="pill-row">
+              ${pill("先排除再研究", "danger")}
+              ${pill("不要替故事补逻辑", "warning")}
+            </div>
+            <p>下面这些场景一旦成立，应该先回到不能买榜或趋势 / 估值页复核，而不是继续给热门主线加仓。</p>
+            <ul class="list-bullets">
+              ${pageData.riskSummary.map((item) => `<li>${item}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="us-market-risk-grid">
+            ${riskCards}
+          </div>
+        </section>
+
+        <section class="section us-market-section" id="us-boards" data-us-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Workspace</div>
+              <h2>双榜执行区</h2>
+              <p>看完框架后，回到双榜比较区做真正的执行判断。现有深链和 query 过滤继续保留。</p>
+            </div>
+          </div>
+          <div class="filter-panel board-hub us-market-workspace-panel">
+            <div class="workspace-head">
+              <strong>机会榜 / 不能买榜主工作区</strong>
+              <span>左边找方向，右边排风险；筛选器、合理估值页和趋势页继续保持独立入口。</span>
+            </div>
+            <div class="board-grid">
+              ${renderBoardPanel("opportunity", marketId, opportunityState)}
+              ${renderBoardPanel("avoid", marketId, avoidState)}
+            </div>
+          </div>
+        </section>
+
+        <section class="section us-market-section" id="us-watchlist" data-us-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Watchlist</div>
+              <h2>代表样本与下一步</h2>
+              <p>${pageData.watchlistIntro}</p>
+            </div>
+          </div>
+          <div class="market-grid us-market-watchlist-grid">${renderTrendWatchlist(marketId)}</div>
+          <div class="tool-grid us-market-tool-grid">
+            ${nextActions}
+          </div>
+        </section>
+      `
+    );
+
+    return marketId;
+  }
+
   function renderMarketPage() {
     const marketId = safeMarket(document.body.dataset.market);
     if (handleLegacyMarketHash(marketId)) {
       return null;
+    }
+
+    if (marketId === "us") {
+      return renderUsMarketPage(marketId);
     }
 
     const market = data.markets[marketId];
@@ -2775,6 +3100,70 @@
 
     renderBoard("op");
     renderBoard("av");
+  }
+
+  function bindUsMarketPage() {
+    const navLinks = Array.from(app.querySelectorAll("[data-us-anchor-link]"));
+    const sections = Array.from(app.querySelectorAll("[data-us-anchor-target]"));
+
+    if (!navLinks.length || !sections.length) {
+      return;
+    }
+
+    const linkById = Object.fromEntries(navLinks.map((link) => [link.dataset.usAnchorLink, link]));
+    const observer = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+        (entries) => {
+          const visibleEntry = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
+
+          if (visibleEntry) {
+            setActive(visibleEntry.target.id);
+          }
+        },
+        { rootMargin: "-28% 0px -55% 0px", threshold: [0.18, 0.4, 0.65] }
+      )
+      : null;
+
+    function setActive(activeId) {
+      navLinks.forEach((link) => {
+        link.classList.toggle("is-active", link.dataset.usAnchorLink === activeId);
+      });
+    }
+
+    function normalizeHash(hash) {
+      if (hash === "#opportunity-board" || hash === "#avoid-board") {
+        return "us-boards";
+      }
+
+      const targetId = (hash || "").replace("#", "");
+      return linkById[targetId] ? targetId : sections[0].id;
+    }
+
+    navLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const href = link.getAttribute("href");
+        const target = href ? document.querySelector(href) : null;
+
+        if (!target) {
+          return;
+        }
+
+        event.preventDefault();
+        window.history.pushState({}, "", `${window.location.pathname}${window.location.search}${href}`);
+        target.scrollIntoView({ block: "start", behavior: "smooth" });
+        setActive(link.dataset.usAnchorLink);
+      });
+    });
+
+    sections.forEach((section) => observer && observer.observe(section));
+
+    window.addEventListener("hashchange", () => {
+      setActive(normalizeHash(window.location.hash));
+    });
+
+    setActive(normalizeHash(window.location.hash));
   }
 
   function bindValuationPanel(marketId) {
@@ -3747,6 +4136,9 @@
     const marketId = renderMarketPage();
     if (marketId) {
       bindMarketBoards(marketId);
+      if (marketId === "us") {
+        bindUsMarketPage();
+      }
     }
   } else if (page === "jp-market-two") {
     renderJpMarketTwoPage();

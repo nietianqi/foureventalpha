@@ -271,6 +271,144 @@ window.prototypeData = {};
     }
   };
 
+  data.usMarketPage = {
+    heroNote: "先确认财报兑现和自由现金流，再决定愿意给多少故事溢价。",
+    heroTags: ["高质量增长优先", "财报驱动", "谨慎追高"],
+    statusMetrics: [
+      { label: "Nasdaq", value: "18,744", note: "成长主线仍强，但要靠业绩续航。" },
+      { label: "S&P 500", value: "5,301", note: "市场广度改善，但风格轮动更快。" },
+      { label: "VIX", value: "14.8", note: "波动不高，不代表可以无视风险。" },
+      { label: "10Y 美债", value: "4.21%", note: "利率仍在约束高估值上限。" }
+    ],
+    quickCards: [
+      {
+        id: "buy",
+        tone: "primary",
+        eyebrow: "怎么买",
+        title: "先找兑现，再给估值",
+        summary: "美股更奖励业绩兑现、现金流托底和低拥挤的质量资产。",
+        bullets: [
+          "财报和指引先过关",
+          "自由现金流与回购决定下限",
+          "趋势只在拥挤可控时跟随"
+        ],
+        href: "#us-buy"
+      },
+      {
+        id: "avoid",
+        tone: "danger",
+        eyebrow: "不能买什么",
+        title: "先排除最伤估值的三类错误",
+        summary: "高估值资产一旦遇到指引下修、现金流转弱或利润率掉队，回撤会非常快。",
+        bullets: [
+          "先排除指引下修",
+          "不要替现金流讲故事",
+          "热门 AI 也要等利润验证"
+        ],
+        href: "#us-avoid"
+      }
+    ],
+    anchorNav: [
+      { id: "us-overview", label: "市场结论", href: "#us-overview" },
+      { id: "us-buy", label: "怎么买", href: "#us-buy" },
+      { id: "us-avoid", label: "不能买什么", href: "#us-avoid" },
+      { id: "us-boards", label: "双榜执行区", href: "#us-boards" },
+      { id: "us-watchlist", label: "代表样本", href: "#us-watchlist" }
+    ],
+    decisionSteps: [
+      {
+        step: "01",
+        title: "先看财报与指引",
+        summary: "收入、EPS 和下一季口径要同向改善，不能只看营收增速。"
+      },
+      {
+        step: "02",
+        title: "再看现金流与回购",
+        summary: "自由现金流率、净留存和回购执行，决定高质量资产能不能继续拿溢价。"
+      },
+      {
+        step: "03",
+        title: "确认拥挤度是否可控",
+        summary: "趋势可以跟，但热门主题不能跑在利润兑现太前面。"
+      },
+      {
+        step: "04",
+        title: "最后决定仓位和节奏",
+        summary: "把机会榜、不能买榜、估值页和趋势页串起来，再决定是不是现在出手。"
+      }
+    ],
+    riskSummary: [
+      "高估值资产最怕管理层亲自下修未来预期。",
+      "现金流转弱会让成长溢价很快收缩。",
+      "利润率没兑现时，趋势和故事都不稳。"
+    ],
+    toolActions: [
+      {
+        id: "op-board",
+        label: "看机会榜",
+        description: "回到公开机会样本，先看逻辑、催化和风险是否匹配。",
+        href: "#opportunity-board",
+        tone: "secondary"
+      },
+      {
+        id: "avoid-board",
+        label: "看不能买榜",
+        description: "先把高估值踩坑场景排掉，再决定要不要继续研究。",
+        href: "#avoid-board",
+        tone: "ghost"
+      },
+      {
+        id: "screener",
+        label: "打开筛选器",
+        description: "把高质量增长、现金流和风险条件变成可执行筛选。",
+        href: screenerUrl("us"),
+        tone: "ghost"
+      },
+      {
+        id: "valuation",
+        label: "去合理估值页",
+        description: "优先确认现金流、回购和安全边际是否支撑当前价格。",
+        href: valuationUrl("us", { preset: "cashflow", band: "all", quality: "q80", margin: "m15", size: "all" }),
+        tone: "primary"
+      },
+      {
+        id: "trend",
+        label: "去趋势页",
+        description: "检查拥挤度、利润兑现和强势主线是否还健康。",
+        href: trendUrl("us"),
+        tone: "ghost"
+      },
+      {
+        id: "cashflow-sample",
+        label: "看 Cascade Pay 详情",
+        description: "用现金流锚样本理解为什么美股最看重兑现质量。",
+        href: stockUrl("us-cascade-pay"),
+        tone: "ghost"
+      }
+    ],
+    heroActionIds: ["op-board", "avoid-board", "screener", "valuation", "trend"],
+    nextActionIds: ["screener", "valuation", "trend", "cashflow-sample"],
+    strategyActions: {
+      "us-growth-confirmation": {
+        label: "去趋势页看财报兑现",
+        href: trendUrl("us")
+      },
+      "us-free-cashflow": {
+        label: "去估值页看现金流质量",
+        href: valuationUrl("us", { preset: "cashflow", band: "all", quality: "q80", margin: "m15", size: "all" })
+      },
+      "us-trend-following": {
+        label: "去趋势页看拥挤度",
+        href: trendUrl("us")
+      },
+      "us-value-rebound": {
+        label: "去估值页看低估修复",
+        href: valuationUrl("us", { preset: "undervalued", band: "undervalued", quality: "q70", margin: "m15", size: "all" })
+      }
+    },
+    watchlistIntro: "下方代表样本把“现金流锚、趋势温度计、低拥挤修复”这三类美股线索接起来，看完就可以直接跳工具页或个股详情页继续判断。"
+  };
+
   data.homeWorkbench = {
     quoteGroups: [
       {
