@@ -1551,6 +1551,475 @@ window.prototypeData = {};
   addValuation({ id: "val-23", stockId: "hk-lotus-tech", presetIds: ["trend-calm"], valuationBand: "quality-premium", sizeBucket: "mid", fairValueLow: "HKD 7.10", fairValueHigh: "HKD 8.00", marginOfSafety: "1%", marginValue: 1, qualityValue: 67, crowdingScore: 64, verdict: "趋势过热不追", note: "叙事开始改善，但盈利质量还不够支持持续追价。" });
   addValuation({ id: "val-24", stockId: "hk-bauhinia-utilities", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid-large", fairValueLow: "HKD 6.40", fairValueHigh: "HKD 6.80", marginOfSafety: "16%", marginValue: 16, qualityValue: 84, crowdingScore: 18, verdict: "分红型可守", note: "股息来源清楚，是港股里更安心的慢变量资产。" });
 
+  data.jpMarketTwo = {
+    pageLabel: "Japan Stocks Framework / V2",
+    title: "日本股票选股框架：该买什么，不该买什么",
+    subtitle: "不是买最便宜的股票，而是买最有可能被市场重估的公司。",
+    summary:
+      "截至 2026 年 4 月，Prime 市场约 90%、Standard 市场约 50% 的公司已经披露资本成本与股价经营相关动作。市场真正追的，不只是回购和分红，而是资本配置、业务组合和资产是否正在走向更优。",
+    quickUse: [
+      "先看可以买什么和不能买什么，把方向收窄到 2 到 3 条主线。",
+      "再点交互式框架图，把宏观、板块、因子、基本面、催化和风控串起来。",
+      "最后回到筛选器和个股页，把框架变成可研究的候选名单。"
+    ],
+    stats: [
+      { value: "Prime ~90%", label: "已披露资本效率相关举措", note: "截至 2026 年 4 月" },
+      { value: "Standard ~50%", label: "开始响应 TSE 改革框架", note: "治理改善仍在扩散" },
+      { value: "¥2.96T", label: "4 月初外资单周净买入日股", note: "资金回流仍支持重估叙事" },
+      { value: "4 条主线", label: "治理、回报、龙头、催化", note: "先找会被重估的公司" }
+    ],
+    conclusions: [
+      {
+        id: "buy",
+        tone: "success",
+        title: "值得买",
+        summary: "真正值得研究的，是便宜且会被重估的公司。",
+        items: ["低估值 + 治理改善", "股东回报持续提升", "全球竞争力龙头", "明确催化剂"]
+      },
+      {
+        id: "avoid",
+        tone: "danger",
+        title: "不值得买",
+        summary: "看起来便宜、不代表值得碰；先排坑，再谈赔率。",
+        items: ["低估但不改革", "高股息陷阱", "周期高点股", "治理差、流动性差、负债重"]
+      }
+    ],
+    drivers: [
+      {
+        id: "pbr",
+        tag: "Why Japan",
+        title: "为什么不能只看 PE / PBR",
+        summary: "日本市场近年的关键不是“便宜”，而是低估值背后有没有资本效率改善的路径。",
+        bullets: [
+          "TSE 持续推动“重视资本成本和股价的经营”，企业需要更明确解释资本配置。",
+          "单纯低 PBR 不等于价值，只有配合 ROE、回购、资产优化才容易触发重估。",
+          "投资者越来越看重的是管理层是否真的动手，而不是口头承诺。"
+        ]
+      },
+      {
+        id: "rerating",
+        tag: "Re-rating",
+        title: "为什么“会不会被重估”比“便不便宜”更重要",
+        summary: "日股最核心的判断，不是便宜本身，而是定价锚会不会被改写。",
+        bullets: [
+          "回购、增分红、交叉持股解消、非核心资产出售，都可能改变市场给它的估值方式。",
+          "便宜但不改革的公司，往往只是长期价值陷阱。",
+          "真正的机会，是低估值 + 明确执行路径 + 可跟踪催化。"
+        ]
+      },
+      {
+        id: "catalyst",
+        tag: "Catalyst",
+        title: "为什么事件催化在日本特别重要",
+        summary: "日本市场很多重估并不是一夜完成，而是被一连串公司行为逐步推出来的。",
+        bullets: [
+          "回购 / 增分红能直接改变股东回报预期。",
+          "中期经营计划更新、资产出售、Activist 入股，往往是估值重定价的起点。",
+          "事件催化越明确，框架越容易落到个股与择时。"
+        ]
+      }
+    ],
+    buyIdeas: [
+      {
+        id: "governance",
+        tag: "治理改善",
+        title: "低估值 + 治理改善",
+        definition: "PBR 低只是起点，真正值钱的是管理层开始主动改善资本效率。",
+        why: "交叉持股解消、回购、资产出售和 ROE 目标提升，会把“低估值”变成“可重估”。",
+        metrics: ["PBR 接近或低于 1x", "ROE 改善趋势", "回购 / 分红政策更新", "非核心资产出售"],
+        fit: "适合愿意跟踪 2 到 4 个季度执行力的用户。",
+        mistake: "只看 PB，不看管理层是否真正动资本结构。",
+        sampleStockIds: ["jp-tokai-holdings", "jp-sakura-machinery"],
+        href: valuationUrl("jp", { preset: "dividend", band: "all", quality: "q70", margin: "m5", size: "all" })
+      },
+      {
+        id: "shareholder-return",
+        tag: "股东回报",
+        title: "股东回报复利型",
+        definition: "持续分红、稳定回购、现金流扎实的公司，更适合在日股做慢变量复利。",
+        why: "日本市场对“稳定兑现股东回报”的溢价正在抬升，尤其是净现金和自由现金流充足的资产。",
+        metrics: ["连续分红年数", "股息增长", "回购频率", "自由现金流 / 净现金"],
+        fit: "适合想要低波动、看重持有体验的用户。",
+        mistake: "把稳定派息误判成治理改善已经完成。",
+        sampleStockIds: ["jp-koyo-banks", "jp-sakura-machinery"],
+        href: boardUrl("jp", "opportunity", { strategy: "jp-high-dividend" })
+      },
+      {
+        id: "global-leader",
+        tag: "全球龙头",
+        title: "全球竞争力龙头",
+        definition: "不是所有出口股都值得买，真正的龙头要有全球份额、技术壁垒和利润率韧性。",
+        why: "哪怕日元顺风减弱，真正有竞争力的企业依然能凭海外业务与技术优势维持重估逻辑。",
+        metrics: ["海外收入占比", "市占率", "毛利率", "长期 ROE", "技术壁垒"],
+        fit: "适合愿意用更长周期看行业地位和全球份额的人。",
+        mistake: "把汇率顺风当成竞争力本身。",
+        sampleStockIds: ["jp-sakura-machinery", "jp-aoi-electronics"],
+        href: stockUrl("jp-sakura-machinery")
+      },
+      {
+        id: "rate-normalization",
+        tag: "利率正常化",
+        title: "利率正常化受益",
+        definition: "日本利率回到更正常的区间后，部分银行与有定价权的资产会重新被定价。",
+        why: "净息差、资产质量和定价权一旦同时改善，原本长期低估的金融与防守资产更容易被看见。",
+        metrics: ["净息差", "利率敏感度", "资产质量", "资本充足率", "定价权"],
+        fit: "适合把宏观变化映射到资产负债表的人。",
+        mistake: "只看利率上行，不看信用成本和资产质量。",
+        sampleStockIds: ["jp-koyo-banks"],
+        href: trendUrl("jp")
+      },
+      {
+        id: "event-driven",
+        tag: "事件驱动",
+        title: "事件驱动型",
+        definition: "TOB、MBO、Activist 入股、资产重组，往往会比纯基本面更快改变预期。",
+        why: "日股重估经常需要明确事件触发，事件越清晰，赔率和时间成本越好评估。",
+        metrics: ["TOB / MBO", "Activist", "回购公告", "资产重组", "股东提案"],
+        fit: "适合愿意跟公告和事件节奏的人。",
+        mistake: "只赌消息，不验证事件后经营质量是否更好。",
+        sampleStockIds: ["jp-tokai-holdings", "jp-mirai-rail"],
+        href: "market-jp-2.html#framework"
+      },
+      {
+        id: "trend-resonance",
+        tag: "趋势共振",
+        title: "趋势与基本面共振型",
+        definition: "当业绩上修、相对强势和资金流一起改善时，日股的慢变量会被加速确认。",
+        why: "趋势不是主角，但能帮你确认基本面改善已经被市场接受。",
+        metrics: ["业绩上修", "强于指数", "成交量", "资金流", "关键位置突破"],
+        fit: "适合在基本面框架里做更细的买点管理。",
+        mistake: "只看股价强，不看强势背后的催化是否还在。",
+        sampleStockIds: ["jp-mirai-rail", "jp-tokai-holdings"],
+        href: trendUrl("jp")
+      }
+    ],
+    avoidIdeas: [
+      {
+        id: "value-trap",
+        tag: "低估值陷阱",
+        title: "低估值陷阱",
+        signal: "多年低 PBR、低 ROE，但没有真实治理动作。",
+        why: "便宜来自资产长期闲置、效率低、市场不相信它会变，而不是市场暂时没发现。",
+        identify: "看 ROE 是否改善、交叉持股是否松动、回购分红是否执行，而不是只看静态 PB。",
+        action: "等治理动作真正落地，再讨论是不是机会。",
+        sampleStockIds: ["jp-hinode-logistics"],
+        href: boardUrl("jp", "avoid", { scene: "jp-value-trap" })
+      },
+      {
+        id: "yield-trap",
+        tag: "高股息陷阱",
+        title: "高股息陷阱",
+        signal: "股息率看起来很高，但分红来源脆弱、增长性差。",
+        why: "如果盈利和现金流不稳，股息率越高，越可能只是股价先跌出来的错觉。",
+        identify: "看自由现金流、派息覆盖、资本开支压力和债务，不要只看收益率。",
+        action: "优先选择有净现金、回购协同、分红可增长的样本。",
+        sampleStockIds: ["jp-tsubasa-food"],
+        href: boardUrl("jp", "avoid", { scene: "jp-weak-shareholder-return" })
+      },
+      {
+        id: "cycle-peak",
+        tag: "周期顶部",
+        title: "周期高点股",
+        signal: "盈利和估值都在高位，市场把景气顺风当成长期能力。",
+        why: "日股里很多顺周期资产在顶部看起来最安全，但一旦景气回落，双杀会很快。",
+        identify: "看订单、库存、产能扩张和历史利润率位置，避免只看当季高盈利。",
+        action: "宁愿等回调后的验证，也不要在景气最高点接最后一棒。",
+        sampleStockIds: ["jp-aoi-electronics"],
+        href: trendUrl("jp")
+      },
+      {
+        id: "weak-fundamentals",
+        tag: "题材泡沫",
+        title: "纯题材弱基本面",
+        signal: "故事很好讲，但现金流、利润率和执行力跟不上。",
+        why: "日本市场更愿意奖励慢变量兑现，不太愿意长期给纯故事高溢价。",
+        identify: "看经营现金流、业绩上修持续性和管理层指引，不只看短期股价强势。",
+        action: "把题材当观察名单，而不是直接当核心仓位。",
+        sampleStockIds: ["jp-mirai-rail"],
+        href: stockUrl("jp-mirai-rail")
+      },
+      {
+        id: "high-debt",
+        tag: "高负债",
+        title: "高负债公司",
+        signal: "资本开支重、现金释放慢、债务对利率变化敏感。",
+        why: "利率正常化阶段，高负债会让原本看似便宜的资产更难被重估。",
+        identify: "看净负债、利息保障倍数、capex 计划和自由现金流转化。",
+        action: "优先避开需要依赖再融资才能维持股东回报的公司。",
+        sampleStockIds: ["jp-hinode-logistics", "jp-mirai-rail"],
+        href: boardUrl("jp", "avoid", { scene: "jp-capex-burden" })
+      },
+      {
+        id: "liquidity-governance",
+        tag: "流动性 / 治理",
+        title: "治理差 / 流动性差公司",
+        signal: "成交稀薄、股东结构封闭、对外沟通弱。",
+        why: "再便宜也很难参与，且一旦判断错，退出成本会被放大。",
+        identify: "看日均成交、股东结构、管理层沟通频率和回购执行记录。",
+        action: "优先把这类公司从研究池里排掉，别等买进去后再处理流动性问题。",
+        sampleStockIds: ["jp-hinode-logistics"],
+        href: boardUrl("jp", "avoid", { scene: "jp-thin-liquidity" })
+      }
+    ],
+    frameworkNodes: [
+      {
+        id: "macro",
+        step: "01",
+        title: "宏观环境筛选",
+        summary: "先判断日本市场当前的大背景，是不是仍然支持“治理改善 + 资金回流”这条主线。",
+        metrics: ["日元方向 / 利率正常化", "外资净流入", "企业资本开支", "TSE 改革推进节奏"],
+        buyLogic: [
+          "利率正常化温和推进，银行和定价权资产更容易受益。",
+          "外资继续围绕治理改善与股东回报提升做配置。",
+          "宏观没有打断企业释放现金、回购和改善资产结构。 "
+        ],
+        avoidLogic: [
+          "只靠汇率顺风撑利润，却没有公司层面的效率改善。",
+          "利率或汇率波动会先伤到高负债和低质量出口链。",
+          "宏观叙事很强，但个股层面没有可兑现动作。 "
+        ],
+        pitfalls: ["把日元顺风误判成公司竞争力", "把指数强势误判成所有低估值都会涨"],
+        links: [
+          { label: "看趋势页", href: trendUrl("jp") },
+          { label: "看经典市场页", href: marketUrl("jp") }
+        ]
+      },
+      {
+        id: "sector",
+        step: "02",
+        title: "板块 / 主题轮动",
+        summary: "在日本市场里，板块轮动不是追热点，而是看哪条主线的重估条件最充分。",
+        metrics: ["治理改善密度", "利率受益", "全球需求韧性", "高股息偏好"],
+        buyLogic: [
+          "优先看治理改善密度高、资本回报动作更明确的板块。",
+          "把全球龙头、利率受益和高股东回报板块分开判断。",
+          "用板块轮动确认当前最值得投入研究时间的方向。 "
+        ],
+        avoidLogic: [
+          "板块涨得快，但催化全靠情绪和汇率。",
+          "把景气顶部的高利润板块当成长期重估主线。",
+          "只看题材，不看行业里谁真正有资本效率动作。 "
+        ],
+        pitfalls: ["看见板块热度就追", "把出口顺风、利率顺风和治理改善混成一条逻辑"],
+        links: [
+          { label: "看趋势跟踪", href: trendUrl("jp") },
+          { label: "看机会榜", href: boardUrl("jp", "opportunity", { strategy: "jp-buyback-rotation" }) }
+        ]
+      },
+      {
+        id: "factors",
+        step: "03",
+        title: "量化因子初筛",
+        summary: "先用因子把 1000 只股票压缩到值得研究的一小撮，再进入基本面。",
+        metrics: ["PBR / PER / EV EBITDA", "12-1M 动量", "ROE / ROA", "回购 / 增配息"],
+        buyLogic: [
+          "低估值因子要和 ROE 改善、回购执行同时出现。",
+          "动量只作为确认，不替代基本面与治理判断。",
+          "优先筛“估值 + 质量 + 股东回报”三者同时改善的公司。 "
+        ],
+        avoidLogic: [
+          "低估值但质量差，长期只是价值陷阱。",
+          "高动量但没有业绩上修，容易变成情绪回撤。",
+          "高股息但现金流差，往往只是收益率错觉。 "
+        ],
+        pitfalls: ["把因子筛选结果当终点", "只看一个指标就直接建仓"],
+        links: [
+          { label: "打开筛选器", href: screenerUrl("jp") },
+          { label: "看合理估值", href: valuationUrl("jp", { preset: "dividend", band: "all", quality: "q70", margin: "m5", size: "all" }) }
+        ]
+      },
+      {
+        id: "fundamental",
+        step: "04",
+        title: "基本面精选",
+        summary: "这里才真正决定‘是不是好公司’，重点是管理层有没有把资本效率改善转成财务结果。",
+        metrics: ["ROE 改善趋势", "自由现金流", "海外收入占比", "资产周转率", "净现金 / 净负债"],
+        buyLogic: [
+          "看 ROE、资产周转和现金流是否同步改善。",
+          "看管理层是否解释清楚资本配置、业务组合和资产优化路径。",
+          "确认全球竞争力或行业地位能支撑更高估值。 "
+        ],
+        avoidLogic: [
+          "利润改善只是汇率带来，不具备经营质量升级。",
+          "现金流被 capex 吞掉，回购分红只是暂时表态。",
+          "业务组合复杂但没有资产优化动作。 "
+        ],
+        pitfalls: ["被单季盈利迷惑", "忽略非核心资产、交叉持股和现金沉淀问题"],
+        links: [
+          { label: "看个股详情", href: stockUrl("jp-tokai-holdings") },
+          { label: "研究回购样本", href: stockUrl("jp-sakura-machinery") }
+        ]
+      },
+      {
+        id: "micro",
+        step: "05",
+        title: "微观结构与择时",
+        summary: "日股不是纯粹追快节奏，择时更多是确认催化、强弱和资金承接是否同向。",
+        metrics: ["公告节奏", "相对强弱", "成交量", "被动资金 / 外资承接", "关键价位"],
+        buyLogic: [
+          "回购公告、业绩上修和中期经营计划更新是最好用的催化。",
+          "相对强势能帮助确认改善已经被市场接受。",
+          "有承接的慢变量，通常比纯冲高更适合介入。 "
+        ],
+        avoidLogic: [
+          "暴涨后追高，催化兑现反而变成见光死。",
+          "成交稀薄的小票很难执行仓位纪律。",
+          "没有新信息，只剩价格加速。 "
+        ],
+        pitfalls: ["把强势当安全", "忽略公告前后与财报前后的仓位纪律"],
+        links: [
+          { label: "看趋势页", href: trendUrl("jp") },
+          { label: "回到机会榜", href: boardUrl("jp", "opportunity", { strategy: "jp-earnings-upgrade" }) }
+        ]
+      },
+      {
+        id: "risk",
+        step: "06",
+        title: "仓位管理与风控",
+        summary: "即使逻辑看对，日股也可能因为流动性、汇率、周期和事件节奏让你亏钱。",
+        metrics: ["单票仓位", "行业集中度", "决算前后节奏", "流动性", "汇率敏感性"],
+        buyLogic: [
+          "仓位和催化强度匹配，慢变量不要用快交易的节奏。",
+          "高股东回报和治理改善适合中期持有，但也要看流动性。",
+          "把风控规则放到买入前，而不是回撤后。 "
+        ],
+        avoidLogic: [
+          "单票仓位过大，遇到财报或公告波动很难处理。",
+          "行业过度集中，把同一逻辑当成分散。",
+          "流动性差、汇率敏感高，却没有预案。 "
+        ],
+        pitfalls: ["以为看对逻辑就不需要仓位纪律", "忽略汇率和决算前后对节奏的扰动"],
+        links: [
+          { label: "打开筛选器", href: screenerUrl("jp") },
+          { label: "回到经典页面", href: marketUrl("jp") }
+        ]
+      }
+    ],
+    researchCandidates: [
+      {
+        stockId: "jp-tokai-holdings",
+        thesis: "低估值 + 治理改善",
+        catalyst: "交叉持股解消 / 回购执行",
+        risk: "治理承诺不兑现",
+        nextAction: "先核对 ROE 改善路径和资产优化动作是否同步。"
+      },
+      {
+        stockId: "jp-sakura-machinery",
+        thesis: "全球竞争力龙头 / 回购兑现",
+        catalyst: "回购执行 / 海外订单韧性",
+        risk: "汇率顺风减弱后盈利弹性回吐",
+        nextAction: "确认回购与海外利润率改善是否都在持续兑现。"
+      },
+      {
+        stockId: "jp-koyo-banks",
+        thesis: "利率正常化受益 / 高股东回报",
+        catalyst: "净息差改善 / 分红提升",
+        risk: "资产质量与信用成本波动",
+        nextAction: "优先看净息差和资本充足率，而不是只看股息率。"
+      },
+      {
+        stockId: "jp-mirai-rail",
+        thesis: "趋势与基本面共振",
+        catalyst: "业绩上修 / 项目现金流释放",
+        risk: "高 capex 拖慢自由现金流",
+        nextAction: "确认业绩上修是否最终转成现金释放。"
+      },
+      {
+        stockId: "jp-hinode-logistics",
+        thesis: "低估值陷阱观察样本",
+        catalyst: "暂无明确催化",
+        risk: "流动性差 / 治理动作弱",
+        nextAction: "先放入回避池，只有治理动作出现后再重看。"
+      },
+      {
+        stockId: "jp-tsubasa-food",
+        thesis: "高股息陷阱对照样本",
+        catalyst: "分红稳定但缺增量",
+        risk: "收益率看似安全，增长和效率不足",
+        nextAction: "把它和真正有回购协同的高回报样本放在一起比。"
+      }
+    ],
+    practicalSteps: [
+      {
+        step: "01",
+        title: "先看它是不是日本市场主线",
+        description: "如果既不属于治理改善、也没有股东回报提升、全球竞争力或事件催化，那就不急着研究。"
+      },
+      {
+        step: "02",
+        title: "用 4 个硬指标粗筛",
+        description: "PBR、ROE、回购 / 分红、现金流质量先过一轮，把明显的价值陷阱排掉。"
+      },
+      {
+        step: "03",
+        title: "看管理层是否真的开始改善",
+        description: "重点不是说了什么，而是有没有执行：回购、资产出售、交叉持股解消、资本配置更新。"
+      },
+      {
+        step: "04",
+        title: "看是否有明确催化",
+        description: "公告、财报上修、中期经营计划、Activist、TOB / MBO 都会影响重估速度。"
+      },
+      {
+        step: "05",
+        title: "最后才看买点和风控",
+        description: "确认流动性、汇率敏感性、决算前后仓位，再决定是不是值得买。"
+      }
+    ],
+    ctas: [
+      {
+        title: "进入选股器",
+        description: "把这套框架变成可操作筛选。",
+        href: screenerUrl("jp"),
+        tone: "primary"
+      },
+      {
+        title: "看趋势页",
+        description: "确认业绩上修、资金流和催化节奏是否共振。",
+        href: trendUrl("jp"),
+        tone: "ghost"
+      },
+      {
+        title: "回到经典日股页",
+        description: "和当前工作区版本并排对照看。",
+        href: marketUrl("jp"),
+        tone: "secondary"
+      }
+    ]
+  };
+
+  data.screenerReplicaMarketTotals = {
+    cn: 5303,
+    us: 4128,
+    jp: 2386,
+    hk: 1842
+  };
+
+  data.screenerReplicaRows = {
+    cn: [
+      ["601398", "工商银行", "工", "#ef6c5b", "上海", "金融", "银行服务", "主板", 26500, "¥2.65万亿", 7.5, 3.5, 7.45, -0.1, 12.9],
+      ["601288", "农业银行", "农", "#25a56a", "上海", "金融", "银行服务", "主板", 24600, "¥2.46万亿", 8.9, 2.11, 7.0, 0, 2.9],
+      ["601857", "中国石油", "油", "#f3b53f", "上海", "能源", "天然气和石油", "主板", 21300, "¥2.13万亿", 13.5, -2.99, 11.65, 0, 25.9],
+      ["300750", "宁德时代", "宁", "#7b6af2", "深圳", "工业", "机械、工具、重型车辆与零部件", "创业板", 20100, "¥2.01万亿", 24.6, 0.69, 445.14, -2, 14],
+      ["600519", "贵州茅台", "茅", "#3148d9", "上海", "消费", "饮料", "主板", 17700, "¥1.77万亿", 20.4, 2.25, 1408.71, -3.7, 22],
+      ["600941", "中国移动", "移", "#2f8cff", "上海", "科技", "电信服务", "主板", 15600, "¥1.56万亿", 11.2, -5.96, 93.42, -0.3, 22.8],
+      ["601138", "工业富联", "富", "#4ea5ff", "上海", "科技", "通信与网络", "主板", 12100, "¥1.21万亿", 33.3, 0.64, 60.63, 2.2, 49.6],
+      ["600938", "中国海油", "海", "#3f77d0", "上海", "能源", "天然气和石油", "主板", 11500, "¥1.15万亿", 9.0, -0.82, 37.15, 0.5, 22],
+      ["601318", "中国平安", "平", "#ff8b48", "上海", "金融", "保险", "主板", 10500, "¥1.05万亿", 7.9, 1.2, 58.27, -0.4, 32.4],
+      ["600036", "招商银行", "招", "#5f8efb", "上海", "金融", "银行服务", "主板", 10000, "¥1万亿", 6.9, 9.91, 39.71, -0.5, 32.8],
+      ["002594", "比亚迪", "迪", "#f45c7a", "深圳", "消费", "汽车与汽车零部件", "主板", 9337.8, "¥9,337.80亿", 29.5, -1.25, 104.16, -1.3, 18],
+      ["300308", "中际旭创", "旭", "#5d8fff", "深圳", "科技", "通信与网络", "创业板", 9244.5, "¥9,244.50亿", 83.4, 0.73, 855.12, 5.6, -12.7],
+      ["601899", "紫金矿业", "紫", "#5aa2d6", "上海", "基础材料", "金属与矿业", "主板", 9211.5, "¥9,211.50亿", 18.5, 0.3, 34.77, -1.5, 41.6],
+      ["600028", "中国石化", "化", "#487ad5", "上海", "能源", "天然气和石油", "主板", 6796.2, "¥6,796.20亿", 21.1, -0.59, 5.61, -0.9, 11.3],
+      ["600900", "长江电力", "江", "#4c9ff0", "上海", "公用事业", "电力公用事业IPP", "主板", 6496.3, "¥6,496.30亿", 19.0, 3.7, 26.53, -0.1, 21.8],
+      ["601658", "邮储银行", "邮", "#6c8af1", "上海", "金融", "银行服务", "主板", 5951.6, "¥5,951.60亿", 6.0, -0.73, 5.05, -0.4, 21],
+      ["000333", "美的集团", "美", "#57a1f7", "深圳", "消费", "家庭用品", "主板", 5889.1, "¥5,889.10亿", 13.6, 2.07, 78.13, 0.3, 17.7],
+      ["688041", "海光信息", "海", "#5f87ff", "上海", "科技", "半导体与半导体设备", "科创板", 5868.6, "¥5,868.60亿", 96.5, 8.05, 261.83, 3.5, 15],
+      ["300502", "新易盛", "新", "#5b92ff", "深圳", "科技", "电子设备及零部件", "创业板", 5711.1, "¥5,711.10亿", 71.4, 0.23, 574.0, 6.8, -9.7],
+      ["688256", "寒武纪", "寒", "#4a78ff", "上海", "科技", "软件及IT服务", "科创板", 5511.4, "¥5,511.40亿", 221.3, 0.48, 1347.36, 3.1, 53]
+    ]
+  };
+
   data.valuationItems = valuationItems;
 
   data.trendSignals = [

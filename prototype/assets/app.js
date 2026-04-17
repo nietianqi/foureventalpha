@@ -390,6 +390,920 @@
     return `<div class="empty-state">${message}</div>`;
   }
 
+  const screenerReplicaConfig = {
+    title: "选股器_股票筛选查询工具",
+    subtitle: "把热门策略、分类筛选、列视图和高密度表格压在同一张工作台里，先筛再比，再决定要不要点进详情。",
+    strategyPresets: [
+      { id: "all", label: "全部股票", performance: "", filters: {} },
+      { id: "dynamic-master", label: "动态大师", performance: "+61.3%", filters: { near52wHigh: "within5", above50d: "yes", volumeSignal: "hot" } },
+      { id: "bull-run", label: "牛气哄哄", performance: "+50%", filters: { oneYearReturn: "above50", ytdReturn: "above20", above50d: "yes" } },
+      { id: "near-high", label: "接近52周高点", performance: "+37.2%", filters: { near52wHigh: "within5", rsi: "between55and70" } },
+      { id: "technical-bull", label: "技术面大牛股", performance: "+36.6%", filters: { near52wHigh: "within10", above50d: "yes", above200d: "yes", volumeSignal: "hot" } },
+      { id: "below-book", label: "股价低于每股净资产70%的股票", performance: "+34.8%", filters: { pb: "below1", upside: "above30" } },
+      { id: "value-master", label: "真乃基本大佬", performance: "+33%", filters: { pe: "below10", roe: "above15", upside: "above15" } },
+      { id: "rocket-growth", label: "火箭成长股", performance: "+17.7%", filters: { revenueGrowth: "above20", epsGrowth: "above20" } },
+      { id: "overvalued", label: "被高估的股票", performance: "+15.2%", filters: { pe: "above40", upside: "below0" } }
+    ],
+    categories: [
+      { id: "popular", label: "热门", primary: ["marketCap", "price", "dividendYield", "peg"], secondary: ["exchange", "sector", "near52wHigh", "upside"] },
+      { id: "price", label: "价格", primary: ["price", "dayChange", "weekChange", "near52wHigh"], secondary: ["monthChange", "ytdReturn", "oneYearReturn", "volumeSignal"] },
+      { id: "valuation", label: "估值", primary: ["pe", "pb", "ps", "peg"], secondary: ["marketCap", "upside", "analystRating", "sector"] },
+      { id: "insight", label: "洞察", primary: ["upside", "analystRating", "volumeSignal", "riskLevel"], secondary: ["exchange", "sector", "oneYearReturn", "near52wHigh"] },
+      { id: "financial", label: "财务", primary: ["grossMargin", "netMargin", "roe", "debtEquity"], secondary: ["roa", "fcfMargin", "marketCap", "exchange"] },
+      { id: "dividend", label: "股息", primary: ["dividendYield", "payoutRatio", "dividendStreak", "dividendGrowth5y"], secondary: ["marketCap", "exchange", "sector", "riskLevel"] },
+      { id: "growth", label: "增长", primary: ["revenueGrowth", "epsGrowth", "oneYearReturn", "upside"], secondary: ["netMargin", "roe", "sector", "riskLevel"] },
+      { id: "returns", label: "回报", primary: ["ytdReturn", "oneYearReturn", "roe", "upside"], secondary: ["dividendYield", "beta", "riskLevel", "exchange"] },
+      { id: "risk", label: "风险", primary: ["riskLevel", "beta", "volatility30d", "debtEquity"], secondary: ["maxDrawdown", "oneYearReturn", "sector", "exchange"] },
+      { id: "technical", label: "技术", primary: ["near52wHigh", "rsi", "above50d", "volumeSignal"], secondary: ["dayChange", "weekChange", "oneYearReturn", "riskLevel"] },
+      { id: "efficiency", label: "效率", primary: ["grossMargin", "fcfMargin", "assetTurnover", "roe"], secondary: ["netMargin", "revenueGrowth", "debtEquity", "sector"] },
+      { id: "profile", label: "简介", primary: ["exchange", "sector", "securityType", "riskLevel"], secondary: ["marketCap", "dividendYield", "upside", "oneYearReturn"] }
+    ],
+    filters: {
+      marketCap: { label: "市值", options: [{ value: "all", label: "任何" }, { value: "mega", label: "超大盘 (>¥1万亿)" }, { value: "large", label: "大盘 (¥5,000亿-¥1万亿)" }, { value: "mid", label: "中盘 (¥2,000亿-¥5,000亿)" }, { value: "small", label: "小盘 (<¥2,000亿)" }] },
+      price: { label: "最近成交价", options: [{ value: "all", label: "任何" }, { value: "below10", label: "低于 ¥10" }, { value: "between10and50", label: "¥10 - ¥50" }, { value: "between50and200", label: "¥50 - ¥200" }, { value: "above200", label: "高于 ¥200" }] },
+      dividendYield: { label: "股息收益率(%)", options: [{ value: "all", label: "任何" }, { value: "above5", label: "高于 5%" }, { value: "between3and5", label: "3% - 5%" }, { value: "between1and3", label: "1% - 3%" }, { value: "below1", label: "低于 1%" }] },
+      peg: { label: "市盈增长比率", options: [{ value: "all", label: "任何" }, { value: "below1", label: "低于 1" }, { value: "between1and2", label: "1 - 2" }, { value: "between2and5", label: "2 - 5" }, { value: "above5", label: "高于 5" }] },
+      exchange: { label: "交易所", options: [{ value: "all", label: "任何" }, { value: "shanghai", label: "上海" }, { value: "shenzhen", label: "深圳" }] },
+      sector: { label: "板块", options: [{ value: "all", label: "任何" }, { value: "金融", label: "金融" }, { value: "能源", label: "能源" }, { value: "工业", label: "工业" }, { value: "消费", label: "消费" }, { value: "科技", label: "科技" }, { value: "基础材料", label: "基础材料" }, { value: "公用事业", label: "公用事业" }] },
+      near52wHigh: { label: "距离52周高点", options: [{ value: "all", label: "任何" }, { value: "within5", label: "5%以内" }, { value: "within10", label: "10%以内" }, { value: "within20", label: "20%以内" }, { value: "over20", label: "20%以上" }] },
+      upside: { label: "上行边际", options: [{ value: "all", label: "任何" }, { value: "above30", label: "高于 30%" }, { value: "between15and30", label: "15% - 30%" }, { value: "between0and15", label: "0% - 15%" }, { value: "below0", label: "低于 0%" }] },
+      dayChange: { label: "日涨跌幅", options: [{ value: "all", label: "任何" }, { value: "above3", label: "高于 3%" }, { value: "between0and3", label: "0% - 3%" }, { value: "betweenNeg3and0", label: "-3% - 0%" }, { value: "belowNeg3", label: "低于 -3%" }] },
+      weekChange: { label: "一周涨跌", options: [{ value: "all", label: "任何" }, { value: "above5", label: "高于 5%" }, { value: "between0and5", label: "0% - 5%" }, { value: "betweenNeg5and0", label: "-5% - 0%" }, { value: "belowNeg5", label: "低于 -5%" }] },
+      monthChange: { label: "一月涨跌", options: [{ value: "all", label: "任何" }, { value: "above15", label: "高于 15%" }, { value: "between5and15", label: "5% - 15%" }, { value: "between0and5", label: "0% - 5%" }, { value: "below0", label: "低于 0%" }] },
+      ytdReturn: { label: "年初至今", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "between10and20", label: "10% - 20%" }, { value: "between0and10", label: "0% - 10%" }, { value: "below0", label: "低于 0%" }] },
+      oneYearReturn: { label: "过去一年涨跌", options: [{ value: "all", label: "任何" }, { value: "above50", label: "高于 50%" }, { value: "between20and50", label: "20% - 50%" }, { value: "between0and20", label: "0% - 20%" }, { value: "below0", label: "低于 0%" }] },
+      pe: { label: "市盈率", options: [{ value: "all", label: "任何" }, { value: "below10", label: "低于 10x" }, { value: "between10and20", label: "10x - 20x" }, { value: "between20and40", label: "20x - 40x" }, { value: "above40", label: "高于 40x" }] },
+      pb: { label: "市净率", options: [{ value: "all", label: "任何" }, { value: "below1", label: "低于 1x" }, { value: "between1and2", label: "1x - 2x" }, { value: "between2and4", label: "2x - 4x" }, { value: "above4", label: "高于 4x" }] },
+      ps: { label: "市销率", options: [{ value: "all", label: "任何" }, { value: "below1", label: "低于 1x" }, { value: "between1and3", label: "1x - 3x" }, { value: "between3and6", label: "3x - 6x" }, { value: "above6", label: "高于 6x" }] },
+      analystRating: { label: "分析师评级", options: [{ value: "all", label: "任何" }, { value: "strongBuy", label: "强力买入" }, { value: "buy", label: "买入" }, { value: "hold", label: "中性" }] },
+      grossMargin: { label: "毛利率", options: [{ value: "all", label: "任何" }, { value: "above40", label: "高于 40%" }, { value: "between20and40", label: "20% - 40%" }, { value: "between10and20", label: "10% - 20%" }, { value: "below10", label: "低于 10%" }] },
+      netMargin: { label: "净利率", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "between10and20", label: "10% - 20%" }, { value: "between0and10", label: "0% - 10%" }, { value: "below0", label: "低于 0%" }] },
+      roe: { label: "股本回报率", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "above15", label: "15% - 20%" }, { value: "between10and15", label: "10% - 15%" }, { value: "below10", label: "低于 10%" }] },
+      roa: { label: "资产回报率", options: [{ value: "all", label: "任何" }, { value: "above10", label: "高于 10%" }, { value: "between5and10", label: "5% - 10%" }, { value: "between0and5", label: "0% - 5%" }, { value: "below0", label: "低于 0%" }] },
+      debtEquity: { label: "债务股本比", options: [{ value: "all", label: "任何" }, { value: "below30", label: "低于 30%" }, { value: "between30and60", label: "30% - 60%" }, { value: "between60and100", label: "60% - 100%" }, { value: "above100", label: "高于 100%" }] },
+      fcfMargin: { label: "自由现金流利润率", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "between10and20", label: "10% - 20%" }, { value: "between0and10", label: "0% - 10%" }, { value: "below0", label: "低于 0%" }] },
+      payoutRatio: { label: "股息支付率", options: [{ value: "all", label: "任何" }, { value: "under30", label: "低于 30%" }, { value: "between30and50", label: "30% - 50%" }, { value: "between50and70", label: "50% - 70%" }, { value: "over70", label: "高于 70%" }] },
+      dividendStreak: { label: "连续派息年数", options: [{ value: "all", label: "任何" }, { value: "over10", label: "10年以上" }, { value: "between5and10", label: "5 - 10年" }, { value: "between1and5", label: "1 - 5年" }, { value: "none", label: "未派息" }] },
+      dividendGrowth5y: { label: "五年股息增长", options: [{ value: "all", label: "任何" }, { value: "above10", label: "高于 10%" }, { value: "between5and10", label: "5% - 10%" }, { value: "between0and5", label: "0% - 5%" }, { value: "below0", label: "低于 0%" }] },
+      revenueGrowth: { label: "营收增长", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "between10and20", label: "10% - 20%" }, { value: "between0and10", label: "0% - 10%" }, { value: "below0", label: "低于 0%" }] },
+      epsGrowth: { label: "每股收益增长", options: [{ value: "all", label: "任何" }, { value: "above20", label: "高于 20%" }, { value: "between10and20", label: "10% - 20%" }, { value: "between0and10", label: "0% - 10%" }, { value: "below0", label: "低于 0%" }] },
+      riskLevel: { label: "风险等级", options: [{ value: "all", label: "任何" }, { value: "low", label: "低风险" }, { value: "medium", label: "中风险" }, { value: "high", label: "高风险" }] },
+      beta: { label: "贝塔", options: [{ value: "all", label: "任何" }, { value: "below0_8", label: "低于 0.8" }, { value: "between0_8and1_2", label: "0.8 - 1.2" }, { value: "between1_2and1_6", label: "1.2 - 1.6" }, { value: "above1_6", label: "高于 1.6" }] },
+      volatility30d: { label: "30日波动率", options: [{ value: "all", label: "任何" }, { value: "below20", label: "低于 20%" }, { value: "between20and30", label: "20% - 30%" }, { value: "between30and40", label: "30% - 40%" }, { value: "above40", label: "高于 40%" }] },
+      maxDrawdown: { label: "最大回撤", options: [{ value: "all", label: "任何" }, { value: "below15", label: "低于 15%" }, { value: "between15and25", label: "15% - 25%" }, { value: "between25and35", label: "25% - 35%" }, { value: "above35", label: "高于 35%" }] },
+      rsi: { label: "RSI", options: [{ value: "all", label: "任何" }, { value: "over70", label: "高于 70" }, { value: "between55and70", label: "55 - 70" }, { value: "between45and55", label: "45 - 55" }, { value: "below45", label: "低于 45" }] },
+      above50d: { label: "高于50日均线", options: [{ value: "all", label: "任何" }, { value: "yes", label: "是" }, { value: "no", label: "否" }] },
+      above200d: { label: "高于200日均线", options: [{ value: "all", label: "任何" }, { value: "yes", label: "是" }, { value: "no", label: "否" }] },
+      volumeSignal: { label: "异常成交量", options: [{ value: "all", label: "任何" }, { value: "hot", label: "热度放量" }, { value: "warm", label: "温和放量" }, { value: "calm", label: "平稳成交" }] },
+      assetTurnover: { label: "资产周转率", options: [{ value: "all", label: "任何" }, { value: "above1", label: "高于 1" }, { value: "between0_5and1", label: "0.5 - 1" }, { value: "between0_2and0_5", label: "0.2 - 0.5" }, { value: "below0_2", label: "低于 0.2" }] },
+      securityType: { label: "上市板块", options: [{ value: "all", label: "任何" }, { value: "主板", label: "主板" }, { value: "创业板", label: "创业板" }, { value: "科创板", label: "科创板" }] }
+    },
+    views: [
+      { id: "overview", label: "概览", columns: ["company", "name", "exchange", "board", "industry", "marketCap", "pe", "peg", "price", "dayChange", "fairValue", "fairValueUpside", "fairValueRating", "analystTarget", "upside"] },
+      { id: "insight", label: "洞察", columns: ["company", "name", "exchange", "board", "sector", "marketCap", "pe", "analystRating", "fairValue", "fairValueUpside", "fairValueRating", "analystTarget", "upside"] },
+      { id: "valuation", label: "估值", columns: ["company", "name", "exchange", "board", "marketCap", "price", "pe", "pb", "ps", "peg", "upside"] },
+      { id: "returns", label: "回报", columns: ["company", "name", "exchange", "board", "dayChange", "weekChange", "monthChange", "ytdReturn", "oneYearReturn", "upside"] },
+      { id: "technical", label: "技术", columns: ["company", "name", "exchange", "board", "price", "near52wHigh", "rsi", "above50d", "above200d", "volumeSignal", "dayChange"] },
+      { id: "financial", label: "财务", columns: ["company", "name", "exchange", "board", "revenueGrowth", "grossMargin", "netMargin", "roe", "roa", "debtEquity", "fcfMargin"] },
+      { id: "growth", label: "增长", columns: ["company", "name", "exchange", "board", "revenueGrowth", "epsGrowth", "ytdReturn", "oneYearReturn", "analystRating", "upside"] },
+      { id: "risk", label: "风险", columns: ["company", "name", "exchange", "board", "riskLevel", "beta", "volatility30d", "maxDrawdown", "debtEquity", "oneYearReturn"] },
+      { id: "custom", label: "自定义", columns: ["company", "name", "marketCap", "price", "pe", "upside"] }
+    ],
+    customColumnPool: [
+      { id: "sector", label: "板块" },
+      { id: "industry", label: "行业" },
+      { id: "marketCap", label: "市值" },
+      { id: "pe", label: "市盈率" },
+      { id: "pb", label: "市净率" },
+      { id: "ps", label: "市销率" },
+      { id: "peg", label: "市盈增长比率" },
+      { id: "price", label: "最近成交价" },
+      { id: "dayChange", label: "日涨跌幅" },
+      { id: "dividendYield", label: "股息收益率" },
+      { id: "upside", label: "上行边际" },
+      { id: "revenueGrowth", label: "营收增长" },
+      { id: "epsGrowth", label: "EPS增长" },
+      { id: "grossMargin", label: "毛利率" },
+      { id: "roe", label: "ROE" },
+      { id: "beta", label: "贝塔" },
+      { id: "near52wHigh", label: "距52周高点" }
+    ]
+  };
+
+  const screenerReplicaFilterIds = Object.keys(screenerReplicaConfig.filters);
+  const screenerReplicaPresetById = Object.fromEntries(screenerReplicaConfig.strategyPresets.map((item) => [item.id, item]));
+  const screenerReplicaCategoryById = Object.fromEntries(screenerReplicaConfig.categories.map((item) => [item.id, item]));
+  const screenerReplicaViewById = Object.fromEntries(screenerReplicaConfig.views.map((item) => [item.id, item]));
+  const screenerReplicaColumnById = Object.fromEntries(screenerReplicaConfig.customColumnPool.map((item) => [item.id, item]));
+  const screenerReplicaColumnLabels = {
+    company: "公司",
+    name: "名称",
+    exchange: "交易所",
+    board: "板块",
+    sector: "板块",
+    industry: "行业",
+    marketCap: "市值",
+    pe: "市盈率",
+    pb: "市净率",
+    ps: "市销率",
+    peg: "市盈增长比率",
+    price: "最近成交价",
+    dayChange: "日涨跌幅(%)",
+    fairValue: "公允价值",
+    fairValueUpside: "公允价值上行边际",
+    fairValueRating: "公允价值评级",
+    analystTarget: "分析师目标价",
+    upside: "上涨边际(按分析师目标价计)",
+    dividendYield: "股息收益率(%)",
+    payoutRatio: "股息支付率(%)",
+    dividendStreak: "连续派息(年)",
+    dividendGrowth5y: "五年股息增长(%)",
+    weekChange: "一周涨跌(%)",
+    monthChange: "一月涨跌(%)",
+    ytdReturn: "年初至今(%)",
+    oneYearReturn: "过去一年(%)",
+    near52wHigh: "距52周高点(%)",
+    rsi: "RSI",
+    above50d: "高于50日均线",
+    above200d: "高于200日均线",
+    volumeSignal: "异常成交量",
+    revenueGrowth: "营收增长(%)",
+    epsGrowth: "EPS增长(%)",
+    grossMargin: "毛利率(%)",
+    netMargin: "净利率(%)",
+    roe: "ROE(%)",
+    roa: "ROA(%)",
+    debtEquity: "债务股本比(%)",
+    fcfMargin: "自由现金流利润率(%)",
+    riskLevel: "风险等级",
+    beta: "贝塔",
+    volatility30d: "30日波动率(%)",
+    maxDrawdown: "最大回撤(%)",
+    analystRating: "分析师评级",
+    assetTurnover: "资产周转率",
+    securityType: "上市板块"
+  };
+
+  const screenerReplicaStorageKeys = {
+    saves: "four-markets-screener-saves",
+    customColumns: "four-markets-screener-custom-columns"
+  };
+
+  function hashReplicaSeed(value) {
+    return String(value || "")
+      .split("")
+      .reduce((total, char, index) => total + char.charCodeAt(0) * (index + 17), 0);
+  }
+
+  function between(value, min, max) {
+    return value >= min && value < max;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function toFixedNumber(value, digits) {
+    return Number(value.toFixed(digits || 0));
+  }
+
+  function computeReplicaRiskLevel(row, beta, oneYearReturn, pe) {
+    if (row.sector === "科技" && (beta >= 1.45 || oneYearReturn >= 80 || pe >= 80)) {
+      return "high";
+    }
+
+    if (row.sector === "金融" || row.sector === "公用事业") {
+      return "low";
+    }
+
+    if (beta >= 1.2 || oneYearReturn >= 35 || pe >= 24) {
+      return "medium";
+    }
+
+    return "low";
+  }
+
+  function hydrateReplicaRow(rowArray) {
+    const [code, name, avatar, avatarColor, exchange, sector, industry, securityType, marketCapValue, marketCapLabel, pe, peg, price, dayChange, upside] = rowArray;
+    const seed = hashReplicaSeed(code);
+    const premiumScore = clamp((pe / 22) + (upside > 0 ? 0.55 : 0.15), 0.1, 3.4);
+    const dividendBase = sector === "金融" ? 5.4 : sector === "能源" ? 4.8 : sector === "公用事业" ? 4.2 : sector === "消费" ? 2.6 : sector === "科技" ? 0.2 : 1.8;
+    const dividendYield = clamp(dividendBase + ((seed % 7) - 3) * 0.22, 0, 7.5);
+    const pb = clamp(pe / (8.5 + (seed % 6)), 0.55, 18.2);
+    const ps = clamp((premiumScore * (sector === "科技" ? 2.4 : sector === "消费" ? 1.3 : 0.75)) + ((seed % 5) * 0.32), 0.35, 25.1);
+    const oneYearReturn = clamp(upside > 0 ? upside * (sector === "科技" ? 2.2 : 1.3) + 8 + (seed % 11) : upside * 4.5 - (seed % 8), -18, 146.9);
+    const ytdReturn = clamp(oneYearReturn * 0.36 + (seed % 6), -12, 51.4);
+    const monthChange = clamp(oneYearReturn * 0.13 + dayChange * 1.7, -10, 24.3);
+    const weekChange = clamp(dayChange * 1.55 + (seed % 5) - 1.5, -6, 9.8);
+    const near52wHigh = clamp(oneYearReturn > 80 ? 1 + (seed % 3) * 0.4 : oneYearReturn > 40 ? 2.4 + (seed % 7) * 0.7 : 4 + (seed % 10) * 0.9, 0.8, 22);
+    const rsi = clamp(47 + Math.round(oneYearReturn / 8) + Math.round(dayChange * 2), 38, 79);
+    const beta = clamp(sector === "科技" ? 1.25 + (seed % 9) * 0.09 : sector === "金融" ? 0.45 + (seed % 6) * 0.06 : sector === "能源" ? 0.82 + (seed % 6) * 0.07 : 0.75 + (seed % 8) * 0.08, 0.45, 1.91);
+    const volatility30d = clamp(sector === "科技" ? 26 + (seed % 9) * 2.6 : sector === "金融" ? 8 + (seed % 8) * 0.8 : sector === "公用事业" ? 10 + (seed % 7) * 0.8 : 14 + (seed % 8) * 2.1, 8.1, 46.8);
+    const maxDrawdown = clamp(volatility30d * 0.88 + (seed % 7), 9.4, 44.1);
+    const revenueGrowth = clamp(sector === "科技" ? 16 + (seed % 8) * 4.3 : sector === "消费" ? 8 + (seed % 6) * 2.1 : sector === "金融" ? 3 + (seed % 5) * 1.1 : sector === "能源" ? 6 + (seed % 5) * 1.8 : 7 + (seed % 6) * 1.9, 3.8, 44.2);
+    const epsGrowth = clamp(revenueGrowth * (sector === "科技" ? 1.3 : 0.95) + ((seed % 7) - 2), -8, 61.7);
+    const grossMargin = clamp(sector === "消费" ? 48 + (seed % 9) * 4.8 : sector === "科技" ? 26 + (seed % 10) * 4.2 : sector === "金融" ? 45 + (seed % 9) * 1.8 : sector === "能源" ? 14 + (seed % 8) * 3.5 : sector === "公用事业" ? 40 + (seed % 7) * 3.1 : 18 + (seed % 8) * 2.4, 14.5, 91.4);
+    const netMargin = clamp(sector === "金融" ? 25 + (seed % 10) * 1.6 : sector === "公用事业" ? 26 + (seed % 8) * 2.1 : sector === "消费" ? 8 + (seed % 9) * 5.2 : sector === "科技" ? 6 + (seed % 7) * 2.2 : 6 + (seed % 8) * 2.4, -22.6, 52.8);
+    const roe = clamp(sector === "消费" ? 16 + (seed % 9) * 1.7 : sector === "科技" ? 8 + (seed % 11) * 1.5 : sector === "金融" ? 9 + (seed % 8) * 0.9 : sector === "公用事业" ? 11 + (seed % 8) * 0.9 : 10 + (seed % 8) * 1.1, -5.2, 30.7);
+    const roa = clamp(sector === "金融" ? 1 + (seed % 5) * 0.45 : sector === "消费" ? 6 + (seed % 7) * 1.1 : sector === "科技" ? 5 + (seed % 8) * 0.9 : 4 + (seed % 7) * 1.2, -3.1, 23.4);
+    const debtEquity = clamp(sector === "金融" ? 118 + (seed % 10) * 4.2 : sector === "科技" ? 4 + (seed % 9) * 2.7 : sector === "公用事业" ? 34 + (seed % 8) * 3.2 : sector === "消费" ? 22 + (seed % 7) * 3.4 : 18 + (seed % 8) * 3.9, 4, 152);
+    const fcfMargin = clamp(sector === "金融" ? 22 + (seed % 7) * 1.3 : sector === "科技" ? -2 + (seed % 8) * 2.9 : sector === "消费" ? 8 + (seed % 8) * 3.1 : sector === "公用事业" ? 20 + (seed % 7) * 2.1 : 7 + (seed % 8) * 2.4, -18.6, 39.2);
+    const assetTurnover = clamp(sector === "金融" ? 0.11 + (seed % 4) * 0.012 : sector === "科技" ? 0.27 + (seed % 8) * 0.09 : sector === "消费" ? 0.55 + (seed % 8) * 0.07 : sector === "公用事业" ? 0.22 + (seed % 6) * 0.03 : 0.35 + (seed % 8) * 0.08, 0.11, 1.18);
+    const payoutRatio = clamp(sector === "科技" ? (seed % 3) * 4.8 : sector === "金融" ? 28 + (seed % 7) * 1.4 : sector === "能源" ? 40 + (seed % 6) * 1.8 : sector === "消费" ? 44 + (seed % 6) * 2.3 : sector === "公用事业" ? 52 + (seed % 6) * 1.7 : 18 + (seed % 7) * 1.9, 0, 60.5);
+    const dividendStreak = sector === "科技" ? (seed % 2) : sector === "消费" ? 3 + (seed % 10) : sector === "能源" ? 4 + (seed % 10) : sector === "公用事业" ? 8 + (seed % 11) : 9 + (seed % 9);
+    const dividendGrowth5y = sector === "科技" ? (seed % 3) * 1.2 : clamp(3 + (seed % 9) * 1.4, 3.2, 15.2);
+    const analystRating = clamp(upside >= 30 ? 4.3 + (seed % 4) * 0.1 : upside >= 10 ? 3.9 + (seed % 4) * 0.1 : upside >= 0 ? 3.6 + (seed % 3) * 0.1 : 3.4 + (seed % 2) * 0.1, 3.4, 4.7);
+    const riskLevel = computeReplicaRiskLevel({ sector }, beta, oneYearReturn, pe);
+    const volumeSignal = oneYearReturn >= 45 || Math.abs(dayChange) >= 3 ? "hot" : oneYearReturn >= 18 || Math.abs(dayChange) >= 1 ? "warm" : "calm";
+
+    return {
+      id: `replica-${code}`,
+      code,
+      name,
+      avatar,
+      avatarColor,
+      exchange,
+      sector,
+      industry,
+      securityType,
+      board: securityType,
+      marketCapValue,
+      marketCapLabel,
+      pe,
+      peg,
+      price,
+      dayChange,
+      upside,
+      dividendYield: toFixedNumber(dividendYield, 1),
+      pb: toFixedNumber(pb, 2),
+      ps: toFixedNumber(ps, 2),
+      payoutRatio: toFixedNumber(payoutRatio, 1),
+      dividendStreak,
+      dividendGrowth5y: toFixedNumber(dividendGrowth5y, 1),
+      weekChange: toFixedNumber(weekChange, 1),
+      monthChange: toFixedNumber(monthChange, 1),
+      ytdReturn: toFixedNumber(ytdReturn, 1),
+      oneYearReturn: toFixedNumber(oneYearReturn, 1),
+      near52wHigh: toFixedNumber(near52wHigh, 1),
+      rsi,
+      above50d: oneYearReturn >= 0 || dayChange >= 0,
+      above200d: oneYearReturn >= 10 || ytdReturn >= 5,
+      volumeSignal,
+      revenueGrowth: toFixedNumber(revenueGrowth, 1),
+      epsGrowth: toFixedNumber(epsGrowth, 1),
+      grossMargin: toFixedNumber(grossMargin, 1),
+      netMargin: toFixedNumber(netMargin, 1),
+      roe: toFixedNumber(roe, 1),
+      roa: toFixedNumber(roa, 1),
+      debtEquity: toFixedNumber(debtEquity, 1),
+      fcfMargin: toFixedNumber(fcfMargin, 1),
+      beta: toFixedNumber(beta, 2),
+      volatility30d: toFixedNumber(volatility30d, 1),
+      maxDrawdown: toFixedNumber(maxDrawdown, 1),
+      analystRating: toFixedNumber(analystRating, 1),
+      riskLevel,
+      assetTurnover: toFixedNumber(assetTurnover, 2),
+      fairValueText: "升级至Pro+",
+      fairValueUpsideText: "升级至Pro+",
+      fairValueRatingText: "升级至Pro+",
+      analystTargetText: "升级至Pro+"
+    };
+  }
+
+  function parseLooseChineseAmount(value) {
+    if (!value) {
+      return 0;
+    }
+
+    const normalized = String(value).replace(/\s+/g, "");
+    const numeric = Number(normalized.replace(/[^\d.]/g, ""));
+
+    if (Number.isNaN(numeric)) {
+      return 0;
+    }
+
+    if (normalized.includes("万亿")) {
+      return numeric * 10000;
+    }
+
+    if (normalized.includes("亿")) {
+      return numeric;
+    }
+
+    return numeric / 100000000;
+  }
+
+  function buildFallbackReplicaRows(marketId) {
+    return data.stockSummaries
+      .filter((item) => item.market === marketId)
+      .map((item, index) => hydrateReplicaRow([
+        item.symbol || String(index + 1).padStart(6, "0"),
+        item.name,
+        item.name.slice(0, 1),
+        ["#4a78ff", "#ef6c5b", "#25a56a", "#f3b53f"][index % 4],
+        item.market === "us" ? "美国" : item.market === "jp" ? "日本" : item.market === "hk" ? "香港" : "中国",
+        item.industry.includes("银行") || item.industry.includes("保险") ? "金融" : item.industry.includes("油") ? "能源" : item.industry.includes("科技") || item.industry.includes("通信") ? "科技" : "工业",
+        item.industry,
+        "主板",
+        parseLooseChineseAmount(item.marketCap),
+        item.marketCap,
+        Math.max(6, 10 + index * 3.5),
+        Math.max(0.3, 0.9 + index * 0.25),
+        Number(String(item.price).replace(/[^\d.]/g, "")) || 10 + index * 8,
+        index % 2 === 0 ? 0.6 + index * 0.3 : -0.4 - index * 0.2,
+        8 + index * 5
+      ]));
+  }
+
+  function getReplicaScreenerRows(marketId) {
+    const source = data.screenerReplicaRows && data.screenerReplicaRows[marketId];
+    return source && source.length
+      ? source.map(hydrateReplicaRow)
+      : buildFallbackReplicaRows(marketId);
+  }
+
+  function defaultReplicaFilters() {
+    return Object.fromEntries(screenerReplicaFilterIds.map((id) => [id, "all"]));
+  }
+
+  function safeReplicaFilterValue(filterId, value) {
+    const filter = screenerReplicaConfig.filters[filterId];
+    return filter && filter.options.some((item) => item.value === value) ? value : "all";
+  }
+
+  function safeReplicaCategory(value) {
+    return screenerReplicaCategoryById[value] ? value : screenerReplicaConfig.categories[0].id;
+  }
+
+  function safeReplicaView(value) {
+    return screenerReplicaViewById[value] ? value : screenerReplicaConfig.views[0].id;
+  }
+
+  function safeReplicaPreset(value) {
+    return screenerReplicaPresetById[value] ? value : "all";
+  }
+
+  function safeReplicaColumns(value) {
+    const allowed = new Set(screenerReplicaConfig.customColumnPool.map((item) => item.id));
+    const parsed = String(value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => allowed.has(item));
+
+    return parsed.length ? parsed : screenerReplicaViewById.custom.columns.slice(2);
+  }
+
+  function getReplicaScreenerState(marketId, params) {
+    const current = params || currentParams();
+    const filters = defaultReplicaFilters();
+
+    screenerReplicaFilterIds.forEach((filterId) => {
+      filters[filterId] = safeReplicaFilterValue(filterId, current.get(`scf_${filterId}`));
+    });
+
+    return {
+      preset: safeReplicaPreset(current.get("scPreset")),
+      category: safeReplicaCategory(current.get("scCategory")),
+      view: safeReplicaView(current.get("scView")),
+      query: (current.get("scQuery") || "").trim(),
+      sortKey: current.get("scSort") || "marketCap",
+      sortDir: current.get("scDir") === "asc" ? "asc" : "desc",
+      moreFilters: current.get("scMore") === "1",
+      customColumns: safeReplicaColumns(current.get("scCols")),
+      filters,
+      selectedIds: [],
+      savedOpen: false
+    };
+  }
+
+  function syncReplicaStateToUrl(state) {
+    const values = {
+      scPreset: state.preset,
+      scCategory: state.category,
+      scView: state.view,
+      scQuery: state.query,
+      scSort: state.sortKey,
+      scDir: state.sortDir,
+      scMore: state.moreFilters ? "1" : "",
+      scCols: state.customColumns.join(","),
+      scrPreset: "",
+      scrStrategy: "",
+      scrRisk: "",
+      scrLiquidity: "",
+      scrState: "",
+      scrQuery: ""
+    };
+
+    screenerReplicaFilterIds.forEach((filterId) => {
+      values[`scf_${filterId}`] = state.filters[filterId];
+    });
+
+    updateQueryGroup(values);
+  }
+
+  function replicaOptionLabel(filterId, value) {
+    const filter = screenerReplicaConfig.filters[filterId];
+    const option = filter && filter.options.find((item) => item.value === value);
+    return option ? option.label : "任何";
+  }
+
+  function matchesReplicaFilter(filterId, value, row) {
+    if (!value || value === "all") {
+      return true;
+    }
+
+    switch (filterId) {
+      case "marketCap":
+        return value === "mega" ? row.marketCapValue >= 10000
+          : value === "large" ? between(row.marketCapValue, 5000, 10000)
+            : value === "mid" ? between(row.marketCapValue, 2000, 5000)
+              : row.marketCapValue < 2000;
+      case "price":
+        return value === "below10" ? row.price < 10
+          : value === "between10and50" ? between(row.price, 10, 50)
+            : value === "between50and200" ? between(row.price, 50, 200)
+              : row.price >= 200;
+      case "dividendYield":
+        return value === "above5" ? row.dividendYield >= 5
+          : value === "between3and5" ? between(row.dividendYield, 3, 5)
+            : value === "between1and3" ? between(row.dividendYield, 1, 3)
+              : row.dividendYield < 1;
+      case "peg":
+        return value === "below1" ? row.peg < 1
+          : value === "between1and2" ? between(row.peg, 1, 2)
+            : value === "between2and5" ? between(row.peg, 2, 5)
+              : row.peg >= 5;
+      case "exchange":
+        return value === "shanghai" ? row.exchange === "上海" : row.exchange === "深圳";
+      case "sector":
+      case "securityType":
+      case "riskLevel":
+      case "volumeSignal":
+        return row[filterId] === value;
+      case "near52wHigh":
+        return value === "within5" ? row.near52wHigh <= 5
+          : value === "within10" ? row.near52wHigh <= 10
+            : value === "within20" ? row.near52wHigh <= 20
+              : row.near52wHigh > 20;
+      case "upside":
+        return value === "above30" ? row.upside >= 30
+          : value === "between15and30" ? between(row.upside, 15, 30)
+            : value === "between0and15" ? between(row.upside, 0, 15)
+              : row.upside < 0;
+      case "dayChange":
+        return value === "above3" ? row.dayChange >= 3
+          : value === "between0and3" ? between(row.dayChange, 0, 3)
+            : value === "betweenNeg3and0" ? between(row.dayChange, -3, 0)
+              : row.dayChange < -3;
+      case "weekChange":
+        return value === "above5" ? row.weekChange >= 5
+          : value === "between0and5" ? between(row.weekChange, 0, 5)
+            : value === "betweenNeg5and0" ? between(row.weekChange, -5, 0)
+              : row.weekChange < -5;
+      case "monthChange":
+        return value === "above15" ? row.monthChange >= 15
+          : value === "between5and15" ? between(row.monthChange, 5, 15)
+            : value === "between0and5" ? between(row.monthChange, 0, 5)
+              : row.monthChange < 0;
+      case "ytdReturn":
+        return value === "above20" ? row.ytdReturn >= 20
+          : value === "between10and20" ? between(row.ytdReturn, 10, 20)
+            : value === "between0and10" ? between(row.ytdReturn, 0, 10)
+              : row.ytdReturn < 0;
+      case "oneYearReturn":
+        return value === "above50" ? row.oneYearReturn >= 50
+          : value === "between20and50" ? between(row.oneYearReturn, 20, 50)
+            : value === "between0and20" ? between(row.oneYearReturn, 0, 20)
+              : row.oneYearReturn < 0;
+      case "pe":
+        return value === "below10" ? row.pe < 10
+          : value === "between10and20" ? between(row.pe, 10, 20)
+            : value === "between20and40" ? between(row.pe, 20, 40)
+              : row.pe >= 40;
+      case "pb":
+        return value === "below1" ? row.pb < 1
+          : value === "between1and2" ? between(row.pb, 1, 2)
+            : value === "between2and4" ? between(row.pb, 2, 4)
+              : row.pb >= 4;
+      case "ps":
+        return value === "below1" ? row.ps < 1
+          : value === "between1and3" ? between(row.ps, 1, 3)
+            : value === "between3and6" ? between(row.ps, 3, 6)
+              : row.ps >= 6;
+      case "analystRating":
+        return value === "strongBuy" ? row.analystRating >= 4.5
+          : value === "buy" ? between(row.analystRating, 4, 4.5)
+            : row.analystRating < 4;
+      case "grossMargin":
+        return value === "above40" ? row.grossMargin >= 40
+          : value === "between20and40" ? between(row.grossMargin, 20, 40)
+            : value === "between10and20" ? between(row.grossMargin, 10, 20)
+              : row.grossMargin < 10;
+      case "netMargin":
+        return value === "above20" ? row.netMargin >= 20
+          : value === "between10and20" ? between(row.netMargin, 10, 20)
+            : value === "between0and10" ? between(row.netMargin, 0, 10)
+              : row.netMargin < 0;
+      case "roe":
+        return value === "above20" ? row.roe >= 20
+          : value === "above15" ? between(row.roe, 15, 20)
+            : value === "between10and15" ? between(row.roe, 10, 15)
+              : row.roe < 10;
+      case "roa":
+        return value === "above10" ? row.roa >= 10
+          : value === "between5and10" ? between(row.roa, 5, 10)
+            : value === "between0and5" ? between(row.roa, 0, 5)
+              : row.roa < 0;
+      case "debtEquity":
+        return value === "below30" ? row.debtEquity < 30
+          : value === "between30and60" ? between(row.debtEquity, 30, 60)
+            : value === "between60and100" ? between(row.debtEquity, 60, 100)
+              : row.debtEquity >= 100;
+      case "fcfMargin":
+        return value === "above20" ? row.fcfMargin >= 20
+          : value === "between10and20" ? between(row.fcfMargin, 10, 20)
+            : value === "between0and10" ? between(row.fcfMargin, 0, 10)
+              : row.fcfMargin < 0;
+      case "payoutRatio":
+        return value === "under30" ? row.payoutRatio < 30
+          : value === "between30and50" ? between(row.payoutRatio, 30, 50)
+            : value === "between50and70" ? between(row.payoutRatio, 50, 70)
+              : row.payoutRatio >= 70;
+      case "dividendStreak":
+        return value === "over10" ? row.dividendStreak >= 10
+          : value === "between5and10" ? between(row.dividendStreak, 5, 10)
+            : value === "between1and5" ? between(row.dividendStreak, 1, 5)
+              : row.dividendStreak <= 0;
+      case "dividendGrowth5y":
+        return value === "above10" ? row.dividendGrowth5y >= 10
+          : value === "between5and10" ? between(row.dividendGrowth5y, 5, 10)
+            : value === "between0and5" ? between(row.dividendGrowth5y, 0, 5)
+              : row.dividendGrowth5y < 0;
+      case "revenueGrowth":
+        return value === "above20" ? row.revenueGrowth >= 20
+          : value === "between10and20" ? between(row.revenueGrowth, 10, 20)
+            : value === "between0and10" ? between(row.revenueGrowth, 0, 10)
+              : row.revenueGrowth < 0;
+      case "epsGrowth":
+        return value === "above20" ? row.epsGrowth >= 20
+          : value === "between10and20" ? between(row.epsGrowth, 10, 20)
+            : value === "between0and10" ? between(row.epsGrowth, 0, 10)
+              : row.epsGrowth < 0;
+      case "beta":
+        return value === "below0_8" ? row.beta < 0.8
+          : value === "between0_8and1_2" ? between(row.beta, 0.8, 1.2)
+            : value === "between1_2and1_6" ? between(row.beta, 1.2, 1.6)
+              : row.beta >= 1.6;
+      case "volatility30d":
+        return value === "below20" ? row.volatility30d < 20
+          : value === "between20and30" ? between(row.volatility30d, 20, 30)
+            : value === "between30and40" ? between(row.volatility30d, 30, 40)
+              : row.volatility30d >= 40;
+      case "maxDrawdown":
+        return value === "below15" ? row.maxDrawdown < 15
+          : value === "between15and25" ? between(row.maxDrawdown, 15, 25)
+            : value === "between25and35" ? between(row.maxDrawdown, 25, 35)
+              : row.maxDrawdown >= 35;
+      case "rsi":
+        return value === "over70" ? row.rsi >= 70
+          : value === "between55and70" ? between(row.rsi, 55, 70)
+            : value === "between45and55" ? between(row.rsi, 45, 55)
+              : row.rsi < 45;
+      case "above50d":
+      case "above200d":
+        return value === "yes" ? row[filterId] : !row[filterId];
+      case "assetTurnover":
+        return value === "above1" ? row.assetTurnover >= 1
+          : value === "between0_5and1" ? between(row.assetTurnover, 0.5, 1)
+            : value === "between0_2and0_5" ? between(row.assetTurnover, 0.2, 0.5)
+              : row.assetTurnover < 0.2;
+      default:
+        return true;
+    }
+  }
+
+  function getFilteredReplicaRows(marketId, state) {
+    const rows = getReplicaScreenerRows(marketId);
+    const query = state.query.trim().toLowerCase();
+
+    return rows
+      .filter((row) => !query || [row.name, row.code, row.industry, row.sector, row.exchange].join(" ").toLowerCase().includes(query))
+      .filter((row) => screenerReplicaFilterIds.every((filterId) => matchesReplicaFilter(filterId, state.filters[filterId], row)));
+  }
+
+  function getVisibleReplicaColumns(state) {
+    if (state.view === "custom") {
+      return ["company", "name"].concat(state.customColumns);
+    }
+
+    return screenerReplicaViewById[state.view].columns;
+  }
+
+  function sortReplicaRows(rows, state) {
+    const sortKey = state.sortKey;
+    const dir = state.sortDir === "asc" ? 1 : -1;
+    const getValue = (row) => {
+      if (sortKey === "company") {
+        return row.code;
+      }
+
+      if (sortKey === "name") {
+        return row.name;
+      }
+
+      if (sortKey === "exchange" || sortKey === "board" || sortKey === "sector" || sortKey === "industry" || sortKey === "securityType" || sortKey === "riskLevel" || sortKey === "volumeSignal") {
+        return row[sortKey];
+      }
+
+      return row[sortKey];
+    };
+
+    return rows.slice().sort((left, right) => {
+      const leftValue = getValue(left);
+      const rightValue = getValue(right);
+
+      if (typeof leftValue === "string" || typeof rightValue === "string") {
+        return String(leftValue).localeCompare(String(rightValue), "zh-CN") * dir;
+      }
+
+      return ((leftValue || 0) - (rightValue || 0)) * dir;
+    });
+  }
+
+  function formatReplicaPercent(value, digits, signed) {
+    const rounded = toFixedNumber(value, digits == null ? 1 : digits);
+    return `${signed && rounded > 0 ? "+" : ""}${rounded}%`;
+  }
+
+  function formatReplicaBool(value) {
+    return value ? "是" : "否";
+  }
+
+  function renderReplicaSignedStat(value, digits) {
+    const tone = value > 0 ? " is-positive" : value < 0 ? " is-negative" : "";
+    return `<span class="screener-stat-text${tone}">${formatReplicaPercent(value, digits, true)}</span>`;
+  }
+
+  function renderReplicaLockedCell(text) {
+    return `<button class="screener-locked-link" data-message="当前原型保留了 Pro 锁定态表现，后续可再接真实接口。">${text || "升级至Pro+"}</button>`;
+  }
+
+  function renderReplicaUpside(value) {
+    const tone = value < 0 ? "is-negative" : value >= 25 ? "is-strong" : "is-positive";
+    const suffix = value < 0 ? "下行边际" : "上行边际";
+    return `<span class="screener-upside ${tone}">${Math.abs(toFixedNumber(value, 1))}%的${suffix}</span>`;
+  }
+
+  function renderReplicaCompanyCell(row, index, selectedIds) {
+    const checked = selectedIds.includes(row.id) ? " checked" : "";
+    return `
+      <div class="screener-company-cell">
+        <input class="screener-row-checkbox" type="checkbox" data-screener-select="${row.id}"${checked}>
+        <span class="screener-row-index">${index + 1}</span>
+        <span class="screener-company-avatar" style="--avatar:${row.avatarColor}">${row.avatar}</span>
+        <div class="screener-company-copy">
+          <strong>${row.code}</strong>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderReplicaNameCell(row) {
+    return `
+      <div class="screener-name-cell">
+        <strong>${row.name}</strong>
+        <span>${row.sector}</span>
+      </div>
+    `;
+  }
+
+  function renderReplicaCell(columnId, row, index, state) {
+    switch (columnId) {
+      case "company":
+        return renderReplicaCompanyCell(row, index, state.selectedIds);
+      case "name":
+        return renderReplicaNameCell(row);
+      case "exchange":
+      case "board":
+      case "sector":
+      case "industry":
+      case "securityType":
+        return row[columnId];
+      case "marketCap":
+        return row.marketCapLabel;
+      case "pe":
+      case "pb":
+      case "ps":
+      case "peg":
+      case "beta":
+      case "assetTurnover":
+        return row[columnId];
+      case "price":
+        return `¥${row.price}`;
+      case "dayChange":
+      case "weekChange":
+      case "monthChange":
+      case "ytdReturn":
+      case "oneYearReturn":
+        return renderReplicaSignedStat(row[columnId], 1);
+      case "dividendYield":
+      case "payoutRatio":
+      case "dividendGrowth5y":
+      case "revenueGrowth":
+      case "epsGrowth":
+      case "grossMargin":
+      case "netMargin":
+      case "roe":
+      case "roa":
+      case "debtEquity":
+      case "fcfMargin":
+      case "volatility30d":
+      case "maxDrawdown":
+        return formatReplicaPercent(row[columnId], 1, false);
+      case "near52wHigh":
+        return `${row.near52wHigh}%`;
+      case "rsi":
+        return row.rsi;
+      case "above50d":
+      case "above200d":
+        return formatReplicaBool(row[columnId]);
+      case "volumeSignal":
+        return row.volumeSignal === "hot" ? "热度放量" : row.volumeSignal === "warm" ? "温和放量" : "平稳成交";
+      case "dividendStreak":
+        return `${row.dividendStreak}年`;
+      case "riskLevel":
+        return row.riskLevel === "high" ? "高风险" : row.riskLevel === "medium" ? "中风险" : "低风险";
+      case "analystRating":
+        return row.analystRating;
+      case "fairValue":
+        return renderReplicaLockedCell(row.fairValueText);
+      case "fairValueUpside":
+        return renderReplicaLockedCell(row.fairValueUpsideText);
+      case "fairValueRating":
+        return renderReplicaLockedCell(row.fairValueRatingText);
+      case "analystTarget":
+        return renderReplicaLockedCell(row.analystTargetText);
+      case "upside":
+        return renderReplicaUpside(row.upside);
+      default:
+        return row[columnId] == null ? "-" : row[columnId];
+    }
+  }
+
+  function renderReplicaFilterField(filterId, state) {
+    const filter = screenerReplicaConfig.filters[filterId];
+    return `
+      <label class="screener-filter-field">
+        <span>${filter.label}</span>
+        <select data-screener-field="${filterId}">
+          ${optionList(filter.options, state.filters[filterId])}
+        </select>
+      </label>
+    `;
+  }
+
+  function renderReplicaActiveFilters(state) {
+    const tags = screenerReplicaFilterIds
+      .filter((filterId) => state.filters[filterId] !== "all")
+      .map((filterId) => `
+        <button class="screener-active-filter" data-screener-remove="${filterId}">
+          <span>${screenerReplicaConfig.filters[filterId].label}：${replicaOptionLabel(filterId, state.filters[filterId])}</span>
+          <strong>×</strong>
+        </button>
+      `);
+
+    if (state.query) {
+      tags.unshift(`
+        <button class="screener-active-filter" data-screener-remove="query">
+          <span>搜索：${state.query}</span>
+          <strong>×</strong>
+        </button>
+      `);
+    }
+
+    return tags.join("");
+  }
+
+  function getReplicaAppliedFilterCount(state) {
+    return screenerReplicaFilterIds.filter((filterId) => state.filters[filterId] !== "all").length + (state.query ? 1 : 0);
+  }
+
+  function getReplicaSavedScreeners() {
+    try {
+      return JSON.parse(window.localStorage.getItem(screenerReplicaStorageKeys.saves) || "[]");
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setReplicaSavedScreeners(items) {
+    window.localStorage.setItem(screenerReplicaStorageKeys.saves, JSON.stringify(items));
+  }
+
+  function getReplicaVisibleResultCount(rows, marketId) {
+    const total = (data.screenerReplicaMarketTotals && data.screenerReplicaMarketTotals[marketId]) || rows.length;
+    const pool = getReplicaScreenerRows(marketId).length || rows.length || 1;
+
+    if (!rows.length) {
+      return 0;
+    }
+
+    return Math.max(rows.length, Math.round(rows.length / pool * total));
+  }
+
+  function renderReplicaPresetRow(state) {
+    return screenerReplicaConfig.strategyPresets
+      .map((preset) => `
+        <button class="screener-preset-pill${preset.id === state.preset ? " is-active" : ""}" data-screener-preset="${preset.id}">
+          <span class="screener-preset-dot"></span>
+          <span>${preset.label}</span>
+          ${preset.performance ? `<strong>${preset.performance}</strong>` : ""}
+        </button>
+      `)
+      .join("");
+  }
+
+  function renderReplicaCategoryTabs(state) {
+    return screenerReplicaConfig.categories
+      .map((category) => `<button class="screener-category-tab${category.id === state.category ? " is-active" : ""}" data-screener-category="${category.id}">${category.label}</button>`)
+      .join("");
+  }
+
+  function renderReplicaViewTabs(state) {
+    return screenerReplicaConfig.views
+      .map((view) => `<button class="screener-view-tab${view.id === state.view ? " is-active" : ""}" data-screener-view="${view.id}">${view.label}</button>`)
+      .join("");
+  }
+
+  function renderReplicaCustomColumns(state) {
+    const checkedColumns = new Set(state.customColumns);
+    return `
+      <div class="screener-custom-panel${state.view === "custom" ? " is-visible" : ""}">
+        ${screenerReplicaConfig.customColumnPool
+        .map((column) => `
+          <label class="screener-custom-option">
+            <input type="checkbox" data-screener-column="${column.id}"${checkedColumns.has(column.id) ? " checked" : ""}>
+            <span>${column.label}</span>
+          </label>
+        `)
+        .join("")}
+      </div>
+    `;
+  }
+
+  function renderReplicaSavedPanel(state, marketId) {
+    if (!state.savedOpen) {
+      return "";
+    }
+
+    const items = getReplicaSavedScreeners().filter((item) => item.marketId === marketId);
+
+    if (!items.length) {
+      return `
+        <div class="screener-saved-panel is-visible">
+          <div class="screener-saved-empty">还没有保存的选股器，先配置好条件后点一次“保存”。</div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="screener-saved-panel is-visible">
+        ${items
+        .map((item) => `
+          <div class="screener-saved-item">
+            <button class="screener-saved-load" data-screener-load="${item.id}">
+              <strong>${item.name}</strong>
+              <span>${item.summary}</span>
+            </button>
+            <button class="screener-saved-delete" data-screener-delete="${item.id}">删除</button>
+          </div>
+        `)
+        .join("")}
+      </div>
+    `;
+  }
+
+  function exportReplicaRowsToCsv(columns, rows) {
+    const headers = columns.map((columnId) => screenerReplicaColumnLabels[columnId] || columnId);
+    const csvRows = rows.map((row, index) => columns.map((columnId) => {
+      const raw = String(renderReplicaCell(columnId, row, index, { selectedIds: [] }))
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      return `"${raw.replace(/"/g, '""')}"`;
+    }).join(","));
+    const csv = [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "screener-export.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   function matchesScreenerPreset(item, presetId) {
     const detail = detailById[item.id];
 
@@ -552,11 +1466,137 @@
     return `
       <div class="button-row">
         ${validIds
-          .slice(0, 2)
-          .map((stockId) => `<a class="button ghost subtle" href="${stockUrl(stockId)}">${summaryById[stockId].name}</a>`)
-          .join("")}
+        .slice(0, 2)
+        .map((stockId) => `<a class="button ghost subtle" href="${stockUrl(stockId)}">${summaryById[stockId].name}</a>`)
+        .join("")}
       </div>
     `;
+  }
+
+  function renderJpMarketTwoIdeaCard(item, tone) {
+    const isAvoid = tone === "danger";
+    const listItems = isAvoid
+      ? [
+        ["危险信号", item.signal],
+        ["为什么容易亏钱", item.why],
+        ["如何识别", item.identify]
+      ]
+      : [
+        ["为什么有效", item.why],
+        ["关键指标", item.metrics.join(" / ")],
+        ["常见误区", item.mistake]
+      ];
+
+    return `
+      <article class="card jp2-idea-card">
+        <div class="pill-row">
+          ${pill(item.tag, tone)}
+          ${pill(isAvoid ? "先排除" : "优先研究", "neutral")}
+        </div>
+        <h3>${item.title}</h3>
+        <p>${item.definition || item.signal}</p>
+        <ul class="list-bullets jp2-list">
+          ${listItems.map(([label, value]) => `<li><strong>${label}：</strong>${value}</li>`).join("")}
+        </ul>
+        <div class="stock-row-footer">
+          <span class="card-subtle">${isAvoid ? "回避动作" : "适合人群"}：${isAvoid ? item.action : item.fit}</span>
+          <a class="button ghost subtle" href="${item.href}">${isAvoid ? "查看回避入口" : "查看相关入口"}</a>
+        </div>
+        ${renderSampleStockLinks(item.sampleStockIds)}
+      </article>
+    `;
+  }
+
+  function renderJpMarketTwoFrameworkPanel(node) {
+    return `
+      <div class="pill-row">
+        ${pill(`步骤 ${node.step}`, "primary")}
+        ${pill("框架节点", "neutral")}
+      </div>
+      <h3>${node.title}</h3>
+      <p>${node.summary}</p>
+      <div class="pill-row jp2-metric-row">
+        ${node.metrics.map((metric) => pill(metric, "neutral")).join("")}
+      </div>
+      <div class="jp2-framework-columns">
+        <article class="aside-panel jp2-framework-block">
+          ${pill("可买逻辑", "success")}
+          <ul class="list-bullets jp2-list">
+            ${node.buyLogic.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+        </article>
+        <article class="aside-panel jp2-framework-block">
+          ${pill("减分 / 回避逻辑", "danger")}
+          <ul class="list-bullets jp2-list">
+            ${node.avoidLogic.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+        </article>
+      </div>
+      <div class="warning-box jp2-framework-warning">
+        ${pill("常见误区", "warning")}
+        <p>${node.pitfalls.join("；")}</p>
+      </div>
+      <div class="button-row">
+        ${node.links.map((item) => `<a class="button ghost subtle" href="${item.href}">${item.label}</a>`).join("")}
+      </div>
+    `;
+  }
+
+  function renderJpMarketTwoResearchRow(item) {
+    const summary = summaryById[item.stockId];
+
+    if (!summary) {
+      return "";
+    }
+
+    return `
+      <tr>
+        <td>
+          <div class="table-cell-stack">
+            <strong><a href="${stockUrl(summary.id)}">${summary.name}</a></strong>
+            <span>${summary.symbol} / ${summary.industry}</span>
+          </div>
+        </td>
+        <td>${item.thesis}</td>
+        <td>${item.catalyst}</td>
+        <td>${item.risk}</td>
+        <td>
+          <div class="table-cell-stack">
+            <strong>${detailById[summary.id].conclusion.state}</strong>
+            <span>${item.nextAction}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function bindJpMarketTwoPage() {
+    const pageData = data.jpMarketTwo;
+    const buttons = Array.from(app.querySelectorAll("[data-framework-node]"));
+    const panel = app.querySelector("#jp-framework-panel");
+
+    if (!pageData || !buttons.length || !panel) {
+      return;
+    }
+
+    const nodeById = Object.fromEntries(pageData.frameworkNodes.map((item) => [item.id, item]));
+
+    function setActive(nodeId) {
+      const activeNode = nodeById[nodeId] || pageData.frameworkNodes[0];
+
+      buttons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.frameworkNode === activeNode.id);
+      });
+
+      panel.innerHTML = renderJpMarketTwoFrameworkPanel(activeNode);
+      bindActionButtons(panel);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setActive(button.dataset.frameworkNode));
+    });
+
+    setActive(pageData.frameworkNodes[0].id);
   }
 
   function renderHomeQuoteGroup(group) {
@@ -568,8 +1608,8 @@
         </div>
         <div class="quote-list">
           ${group.items
-            .map(
-              (item) => `
+        .map(
+          (item) => `
                 <a class="quote-row" href="${item.href || "#"}">
                   <div class="quote-meta">
                     <strong>${item.name}</strong>
@@ -581,8 +1621,8 @@
                   </div>
                 </a>
               `
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
       </article>
     `;
@@ -643,14 +1683,14 @@
           <table class="leaderboard-table">
             <tbody>
               ${stockIds
-                .map((stockId, index) => {
-                  const summary = summaryById[stockId];
-                  const detail = detailById[stockId];
-                  if (!summary || !detail) {
-                    return "";
-                  }
+        .map((stockId, index) => {
+          const summary = summaryById[stockId];
+          const detail = detailById[stockId];
+          if (!summary || !detail) {
+            return "";
+          }
 
-                  return `
+          return `
                     <tr>
                       <td class="leaderboard-rank">${index + 1}</td>
                       <td>
@@ -663,8 +1703,8 @@
                       <td class="numeric-cell">${summary.price}</td>
                     </tr>
                   `;
-                })
-                .join("")}
+        })
+        .join("")}
             </tbody>
           </table>
         </div>
@@ -803,6 +1843,9 @@
               </div>
             </article>
           </div>
+          <div class="quote-board-head">
+            <span class="section-marker">Live Quotes</span>
+          </div>
           <div class="quote-board">
             ${homeData.quoteGroups.map(renderHomeQuoteGroup).join("")}
           </div>
@@ -893,15 +1936,15 @@
           </div>
           <div class="tool-grid">
             ${homeData.tools
-              .map(
-                (item) => `
+        .map(
+          (item) => `
                   <a class="tool-card" href="${item.href || "#"}">
                     <strong>${item.title}</strong>
                     <span>${item.description}</span>
                   </a>
                 `
-              )
-              .join("")}
+        )
+        .join("")}
           </div>
         </section>
 
@@ -1190,28 +2233,28 @@
         </div>
         <div class="trend-factor-stack">
           ${trend.factorScores
-            .map(
-              (item) => `
+        .map(
+          (item) => `
                 <div class="trend-factor">
                   <div class="trend-factor-head"><strong>${item.label}</strong><span>${item.value}</span></div>
                   <div class="factor-bar"><span style="width:${item.value}%"></span></div>
                   <p>${item.summary}</p>
                 </div>
               `
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
         <div class="trend-actions">
           ${trend.ctaLinks
-            .map(
-              (item) => `
+        .map(
+          (item) => `
                 <a class="trend-action ${item.tone}" href="${item.url}">
                   <strong>${item.title}</strong>
                   <span>${item.description}</span>
                 </a>
               `
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
       </article>
     `;
@@ -1305,7 +2348,6 @@
         `;
       })
       .join("");
-
     setTitle(`${market.name}`);
     renderShell(
       "market",
@@ -1336,8 +2378,8 @@
 
         <section class="section">
           <div class="market-summary-grid">
-            <article class="card">
-              ${pill("判断顺序", "primary")}
+            <article class="card featured">
+              ${pill("判断顺序", "dark")}
               <h3>先看什么</h3>
               <p>${market.methodSummary}</p>
             </article>
@@ -1448,6 +2490,236 @@
     );
 
     return marketId;
+  }
+
+  function renderJpMarketTwoPage() {
+    const pageData = data.jpMarketTwo;
+    const defaultNode = pageData.frameworkNodes[0];
+
+    setTitle("日本股票选股框架 2");
+    renderShell(
+      "market",
+      "jp",
+      `
+        <section class="section">
+          <div class="banner-grid jp2-hero-grid">
+            <div class="banner-card jp2-hero-card">
+              <div class="eyebrow">${pageData.pageLabel}</div>
+              <h1 class="page-title">${pageData.title}</h1>
+              <p class="page-subtitle">${pageData.subtitle}</p>
+              <p class="jp2-hero-note">${pageData.summary}</p>
+              <div class="button-row">
+                <a class="button secondary" href="#buy-cases">看可以买的思路</a>
+                <a class="button ghost" href="#avoid-cases">看不能买的思路</a>
+                <a class="button primary" href="${screenerPageUrl("jp")}">进入选股器</a>
+                <a class="button ghost" href="${marketUrl("jp")}">返回经典日股页</a>
+              </div>
+            </div>
+            <div class="aside-stack jp2-hero-side">
+              <article class="state-card jp2-state-card">
+                ${pill("30 秒读懂这页", "primary")}
+                <h3 class="card-title">先判断重估，再决定是否便宜</h3>
+                <div class="jp2-step-list compact">
+                  ${pageData.quickUse.map((item, index) => `
+                    <div class="jp2-step compact">
+                      <span class="jp2-step-index">0${index + 1}</span>
+                      <p>${item}</p>
+                    </div>
+                  `).join("")}
+                </div>
+              </article>
+              <div class="jp2-stat-grid">
+                ${pageData.stats.map((item) => `
+                  <div class="banner-stat jp2-stat-card">
+                    <strong>${item.value}</strong>
+                    <span>${item.label}</span>
+                    <em>${item.note}</em>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Conclusion</div>
+              <h2>一句话先给结论</h2>
+              <p>这页先给用户结果，再带他往下理解为什么同样是便宜，日本股票里有的能买、有的不能碰。</p>
+            </div>
+          </div>
+          <div class="jp2-conclusion-grid">
+            ${pageData.conclusions.map((item) => `
+              <article class="section-panel jp2-conclusion-card ${item.id === "buy" ? "is-positive" : "is-danger"}">
+                <div class="pill-row">
+                  ${pill(item.title, item.tone)}
+                  ${pill(item.id === "buy" ? "先研究" : "先排除", "neutral")}
+                </div>
+                <h3>${item.title}</h3>
+                <p>${item.summary}</p>
+                <ul class="list-bullets jp2-list">
+                  ${item.items.map((entry) => `<li>${entry}</li>`).join("")}
+                </ul>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Main Thesis</div>
+              <h2>日本市场主线为什么和别的市场不一样</h2>
+              <p>这里不是讲新闻，而是把现在日本市场最值得看的定价逻辑压缩成三个信息块。</p>
+            </div>
+          </div>
+          <div class="market-grid jp2-driver-grid">
+            ${pageData.drivers.map((item) => `
+              <article class="card jp2-driver-card">
+                ${pill(item.tag, "primary")}
+                <h3>${item.title}</h3>
+                <p>${item.summary}</p>
+                <ul class="list-bullets jp2-list">
+                  ${item.bullets.map((entry) => `<li>${entry}</li>`).join("")}
+                </ul>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section" id="buy-cases">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Buy Ideas</div>
+              <h2>可以买的 6 条思路</h2>
+              <p>每一张卡都回答 4 件事：它是什么、为什么在日本有效、该看什么、最容易看错什么。</p>
+            </div>
+          </div>
+          <div class="market-grid jp2-idea-grid">
+            ${pageData.buyIdeas.map((item) => renderJpMarketTwoIdeaCard(item, "primary")).join("")}
+          </div>
+        </section>
+
+        <section class="section" id="avoid-cases">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Avoid Ideas</div>
+              <h2>不能碰的 6 类坑</h2>
+              <p>日股最常见的亏钱方式，不是没找到便宜股，而是把不该碰的低质量样本误判成价值机会。</p>
+            </div>
+          </div>
+          <div class="market-grid jp2-idea-grid">
+            ${pageData.avoidIdeas.map((item) => renderJpMarketTwoIdeaCard(item, "danger")).join("")}
+          </div>
+        </section>
+
+        <section class="section" id="framework">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Framework</div>
+              <h2>交互式选股框架图</h2>
+              <p>按“宏观 → 板块 → 因子 → 基本面 → 催化 / 择时 → 风控”展开。点左侧节点，右侧会切换成对应说明。</p>
+            </div>
+          </div>
+          <div class="jp2-framework-grid">
+            <article class="section-panel jp2-framework-map-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">从 1000 只股票收敛到 10 只研究候选</strong>
+                  <p>先缩小研究范围，再做基本面和事件确认，最后才是买点与仓位。</p>
+                </div>
+              </div>
+              <div class="jp2-node-grid">
+                ${pageData.frameworkNodes.map((item, index) => `
+                  <button class="jp2-node-button${index === 0 ? " is-active" : ""}" type="button" data-framework-node="${item.id}">
+                    <span class="jp2-node-step">${item.step}</span>
+                    <strong>${item.title}</strong>
+                    <span>${item.summary}</span>
+                  </button>
+                `).join("")}
+              </div>
+            </article>
+            <article class="section-panel jp2-framework-panel" id="jp-framework-panel">
+              ${renderJpMarketTwoFrameworkPanel(defaultNode)}
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Research Queue</div>
+              <h2>从框架到样本：先研究哪几只</h2>
+              <p>这不是推荐名单，而是示意如何把上面的逻辑收敛成一张可继续深挖的研究队列。</p>
+            </div>
+          </div>
+          <div class="section-panel jp2-candidate-panel">
+            <div class="jp2-candidate-table-wrap">
+              <table class="jp2-candidate-table">
+                <thead>
+                  <tr>
+                    <th>公司</th>
+                    <th>归属思路</th>
+                    <th>关键催化</th>
+                    <th>主要风险</th>
+                    <th>下一步</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageData.researchCandidates.map(renderJpMarketTwoResearchRow).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Path</div>
+              <h2>如何从 1000 只股票里找出 10 只值得研究的股票</h2>
+              <p>这部分故意做成流程，不是让用户记概念，而是让他知道下一步应该做什么。</p>
+            </div>
+          </div>
+          <div class="section-panel">
+            <div class="jp2-step-list">
+              ${pageData.practicalSteps.map((item) => `
+                <div class="jp2-step">
+                  <span class="jp2-step-index">${item.step}</span>
+                  <div>
+                    <strong>${item.title}</strong>
+                    <p>${item.description}</p>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Next Step</div>
+              <h2>继续往下做成产品功能</h2>
+              <p>现在这页已经能作为“方法页”独立存在，下一步最自然的是把它接到筛选器、催化页和风控页。</p>
+            </div>
+          </div>
+          <div class="jp2-cta-grid">
+            ${pageData.ctas.map((item) => `
+              <article class="card jp2-cta-card">
+                ${pill(item.title, item.tone === "primary" ? "primary" : item.tone === "secondary" ? "dark" : "neutral")}
+                <h3>${item.title}</h3>
+                <p>${item.description}</p>
+                <div class="button-row">
+                  <a class="button ${item.tone}" href="${item.href}">${item.title}</a>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `
+    );
   }
 
   function bindMarketBoards(marketId) {
@@ -1956,6 +3228,376 @@
     return marketId;
   }
 
+  function bindScreenerPanel(marketId) {
+    const root = app.querySelector(".screener-replica-page");
+
+    if (!root || root.dataset.boundReplica === "true") {
+      return;
+    }
+
+    root.dataset.boundReplica = "true";
+
+    const state = getReplicaScreenerState(marketId);
+    const storedColumns = safeReplicaColumns(window.localStorage.getItem(screenerReplicaStorageKeys.customColumns));
+
+    if (!currentParams().get("scCols")) {
+      state.customColumns = storedColumns;
+    }
+
+    const presetRow = root.querySelector("#screener-replica-presets");
+    const categoryTabs = root.querySelector("#screener-replica-categories");
+    const primaryFilters = root.querySelector("#screener-replica-primary-filters");
+    const secondaryFilters = root.querySelector("#screener-replica-secondary-filters");
+    const activeFilters = root.querySelector("#screener-replica-active-filters");
+    const viewTabs = root.querySelector("#screener-replica-view-tabs");
+    const customPanel = root.querySelector("#screener-replica-custom-panel");
+    const savedPanel = root.querySelector("#screener-replica-saved-panel");
+    const tablePanel = root.querySelector("#screener-replica-table-panel");
+    const totalLabel = root.querySelector("#screener-replica-total");
+    const appliedLabel = root.querySelector("#screener-replica-applied");
+    const currentRowsLabel = root.querySelector("#screener-replica-current-rows");
+    const selectedRowsLabel = root.querySelector("#screener-replica-selected");
+    const searchInput = root.querySelector("#screener-replica-query");
+    const numericColumns = new Set(["marketCap", "pe", "pb", "ps", "peg", "price", "dayChange", "dividendYield", "payoutRatio", "dividendGrowth5y", "weekChange", "monthChange", "ytdReturn", "oneYearReturn", "near52wHigh", "rsi", "revenueGrowth", "epsGrowth", "grossMargin", "netMargin", "roe", "roa", "debtEquity", "fcfMargin", "beta", "volatility30d", "maxDrawdown", "analystRating", "assetTurnover", "upside"]);
+
+    function getReplicaColumnClassName(columnId) {
+      const classes = [];
+
+      if (columnId === "company") {
+        classes.push("is-sticky", "is-sticky-company");
+      }
+
+      if (columnId === "name") {
+        classes.push("is-sticky", "is-sticky-name");
+      }
+
+      if (numericColumns.has(columnId)) {
+        classes.push("is-numeric");
+      }
+
+      return classes.join(" ");
+    }
+
+    function applyReplicaPreset(presetId) {
+      const preset = screenerReplicaPresetById[presetId];
+
+      if (!preset) {
+        return;
+      }
+
+      state.preset = presetId;
+      state.filters = defaultReplicaFilters();
+      Object.entries(preset.filters).forEach(([key, value]) => {
+        state.filters[key] = value;
+      });
+      state.selectedIds = [];
+    }
+
+    function renderReplicaTable(rows) {
+      const visibleColumns = getVisibleReplicaColumns(state);
+      const allSelected = rows.length > 0 && rows.every((row) => state.selectedIds.includes(row.id));
+      const headerMarkup = visibleColumns
+        .map((columnId) => {
+          const label = screenerReplicaColumnLabels[columnId] || columnId;
+          const sortable = !["fairValue", "fairValueUpside", "fairValueRating", "analystTarget"].includes(columnId);
+          const isActiveSort = state.sortKey === columnId;
+          const headerContent = sortable
+            ? `<button class="screener-sort-button${isActiveSort ? " is-active" : ""}" data-screener-sort="${columnId}">${label}<span>${isActiveSort ? (state.sortDir === "asc" ? "↑" : "↓") : "↕"}</span></button>`
+            : `<span class="screener-sort-static">${label}</span>`;
+
+          if (columnId === "company") {
+            return `<th class="${getReplicaColumnClassName(columnId)}"><div class="screener-company-head"><input type="checkbox" data-screener-select-all${allSelected ? " checked" : ""}>${headerContent}</div></th>`;
+          }
+
+          return `<th class="${getReplicaColumnClassName(columnId)}">${headerContent}</th>`;
+        })
+        .join("");
+
+      const bodyMarkup = rows.length
+        ? rows
+          .map((row, index) => `
+            <tr>
+              ${visibleColumns
+              .map((columnId) => `<td class="${getReplicaColumnClassName(columnId)}">${renderReplicaCell(columnId, row, index, state)}</td>`)
+              .join("")}
+            </tr>
+          `)
+          .join("")
+        : `<tr><td colspan="${visibleColumns.length}">${renderEmpty("当前筛选条件下，没有符合要求的样本。")}</td></tr>`;
+
+      tablePanel.innerHTML = `
+        <div class="screener-grid-wrap">
+          <table class="screener-grid-table">
+            <thead><tr>${headerMarkup}</tr></thead>
+            <tbody>${bodyMarkup}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderReplica() {
+      const category = screenerReplicaCategoryById[state.category];
+      const filteredRows = sortReplicaRows(getFilteredReplicaRows(marketId, state), state);
+      const totalCount = getReplicaVisibleResultCount(filteredRows, marketId);
+
+      state.selectedIds = state.selectedIds.filter((id) => filteredRows.some((row) => row.id === id));
+
+      presetRow.innerHTML = renderReplicaPresetRow(state);
+      categoryTabs.innerHTML = renderReplicaCategoryTabs(state);
+      primaryFilters.innerHTML = category.primary.map((filterId) => renderReplicaFilterField(filterId, state)).join("")
+        + `<button class="screener-more-button${state.moreFilters ? " is-open" : ""}" data-screener-more>${state.moreFilters ? "收起更多筛选" : "更多筛选条件"}</button>`;
+      secondaryFilters.innerHTML = state.moreFilters ? category.secondary.map((filterId) => renderReplicaFilterField(filterId, state)).join("") : "";
+      activeFilters.innerHTML = renderReplicaActiveFilters(state);
+      viewTabs.innerHTML = renderReplicaViewTabs(state);
+      customPanel.innerHTML = renderReplicaCustomColumns(state);
+      savedPanel.innerHTML = renderReplicaSavedPanel(state, marketId);
+      totalLabel.textContent = totalCount.toLocaleString("zh-CN");
+      appliedLabel.textContent = `已应用筛选条件 ${getReplicaAppliedFilterCount(state)}`;
+      currentRowsLabel.textContent = `当前展示 ${filteredRows.length} 行样本`;
+      selectedRowsLabel.textContent = `已选 ${state.selectedIds.length}`;
+      searchInput.value = state.query;
+      renderReplicaTable(filteredRows);
+      bindActionButtons(root);
+      syncReplicaStateToUrl(state);
+    }
+
+    root.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-screener-preset],[data-screener-category],[data-screener-view],[data-screener-remove],[data-screener-more],[data-screener-action],[data-screener-sort],[data-screener-load],[data-screener-delete]");
+
+      if (!target) {
+        return;
+      }
+
+      if (target.dataset.screenerPreset) {
+        applyReplicaPreset(target.dataset.screenerPreset);
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerCategory) {
+        state.category = target.dataset.screenerCategory;
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerView) {
+        state.view = target.dataset.screenerView;
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerRemove) {
+        if (target.dataset.screenerRemove === "query") {
+          state.query = "";
+        } else {
+          state.filters[target.dataset.screenerRemove] = "all";
+        }
+        renderReplica();
+        return;
+      }
+
+      if (target.hasAttribute("data-screener-more")) {
+        state.moreFilters = !state.moreFilters;
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerSort) {
+        state.sortDir = state.sortKey === target.dataset.screenerSort && state.sortDir === "desc" ? "asc" : "desc";
+        state.sortKey = target.dataset.screenerSort;
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerAction === "save") {
+        const name = window.prompt("给这个选股器起个名字", `${data.markets[marketId].shortName} 我的选股器`);
+
+        if (!name || !name.trim()) {
+          return;
+        }
+
+        const items = getReplicaSavedScreeners();
+        const summary = renderReplicaActiveFilters(state).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || "未添加额外筛选条件";
+        items.unshift({
+          id: `save-${Date.now()}`,
+          name: name.trim(),
+          marketId,
+          summary,
+          state: {
+            preset: state.preset,
+            category: state.category,
+            view: state.view,
+            query: state.query,
+            sortKey: state.sortKey,
+            sortDir: state.sortDir,
+            moreFilters: state.moreFilters,
+            customColumns: state.customColumns.slice(),
+            filters: Object.assign({}, state.filters)
+          }
+        });
+        setReplicaSavedScreeners(items.slice(0, 8));
+        state.savedOpen = true;
+        showToast(`已保存 ${name.trim()}。`);
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerAction === "saved") {
+        state.savedOpen = !state.savedOpen;
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerAction === "download") {
+        exportReplicaRowsToCsv(getVisibleReplicaColumns(state), sortReplicaRows(getFilteredReplicaRows(marketId, state), state));
+        showToast("已导出当前视图的 CSV。");
+        return;
+      }
+
+      if (target.dataset.screenerLoad) {
+        const item = getReplicaSavedScreeners().find((entry) => entry.id === target.dataset.screenerLoad);
+
+        if (!item) {
+          return;
+        }
+
+        state.preset = item.state.preset;
+        state.category = item.state.category;
+        state.view = item.state.view;
+        state.query = item.state.query;
+        state.sortKey = item.state.sortKey;
+        state.sortDir = item.state.sortDir;
+        state.moreFilters = item.state.moreFilters;
+        state.customColumns = item.state.customColumns.slice();
+        state.filters = Object.assign(defaultReplicaFilters(), item.state.filters);
+        state.selectedIds = [];
+        state.savedOpen = false;
+        showToast(`已载入 ${item.name}。`);
+        renderReplica();
+        return;
+      }
+
+      if (target.dataset.screenerDelete) {
+        setReplicaSavedScreeners(getReplicaSavedScreeners().filter((item) => item.id !== target.dataset.screenerDelete));
+        showToast("已删除保存的选股器。");
+        renderReplica();
+      }
+    });
+
+    root.addEventListener("change", (event) => {
+      const field = event.target;
+
+      if (field.matches("[data-screener-field]")) {
+        state.filters[field.dataset.screenerField] = field.value || "all";
+        renderReplica();
+        return;
+      }
+
+      if (field.matches("[data-screener-column]")) {
+        const nextColumns = screenerReplicaConfig.customColumnPool
+          .map((column) => column.id)
+          .filter((columnId) => {
+            const checkbox = root.querySelector(`[data-screener-column="${columnId}"]`);
+            return checkbox && checkbox.checked;
+          });
+
+        state.customColumns = nextColumns.length ? nextColumns : screenerReplicaViewById.custom.columns.slice(2);
+        window.localStorage.setItem(screenerReplicaStorageKeys.customColumns, state.customColumns.join(","));
+        renderReplica();
+        return;
+      }
+
+      if (field.matches("[data-screener-select]")) {
+        state.selectedIds = field.checked
+          ? Array.from(new Set(state.selectedIds.concat(field.dataset.screenerSelect)))
+          : state.selectedIds.filter((id) => id !== field.dataset.screenerSelect);
+        renderReplica();
+        return;
+      }
+
+      if (field.matches("[data-screener-select-all]")) {
+        const visibleIds = sortReplicaRows(getFilteredReplicaRows(marketId, state), state).map((row) => row.id);
+        state.selectedIds = field.checked ? visibleIds : [];
+        renderReplica();
+      }
+    });
+
+    root.addEventListener("input", (event) => {
+      if (event.target.matches("#screener-replica-query")) {
+        state.query = event.target.value;
+        renderReplica();
+      }
+    });
+
+    renderReplica();
+  }
+
+  function renderScreenerPage() {
+    const marketId = safeMarket(currentParams().get("market"));
+    const market = data.markets[marketId];
+
+    setTitle(`${market.name}选股器`);
+    renderShell(
+      "screener",
+      marketId,
+      `
+        <section class="section screener-replica-page">
+          <div class="screener-replica-head">
+            <div>
+              <div class="screener-replica-eyebrow">${market.name} / Screener</div>
+              <h1 class="screener-replica-title">${screenerReplicaConfig.title}</h1>
+              <p class="screener-replica-subtitle">${screenerReplicaConfig.subtitle}</p>
+            </div>
+          </div>
+
+          <div class="screener-replica-toolbar">
+            <div class="screener-replica-summary">找到 <strong id="screener-replica-total">0</strong> 支股票</div>
+            <div class="screener-replica-actions">
+              <button class="screener-head-button" data-screener-action="save">保存</button>
+              <button class="screener-head-button is-primary" data-screener-action="saved">我的选股器</button>
+            </div>
+          </div>
+
+          <div class="screener-preset-strip" id="screener-replica-presets"></div>
+
+          <article class="screener-workbench-card">
+            <div class="screener-filter-topline">
+              <div class="screener-filter-left">
+                <strong>筛选</strong>
+                <span id="screener-replica-applied">已应用筛选条件 0</span>
+              </div>
+              <label class="screener-search-box">
+                <input id="screener-replica-query" type="text" placeholder="搜索超150种指标、股票名称、代码或行业">
+              </label>
+            </div>
+            <div class="screener-category-tabs" id="screener-replica-categories"></div>
+            <div class="screener-filter-grid" id="screener-replica-primary-filters"></div>
+            <div class="screener-filter-grid is-secondary" id="screener-replica-secondary-filters"></div>
+            <div class="screener-active-filters" id="screener-replica-active-filters"></div>
+          </article>
+
+          <article class="screener-workbench-card">
+            <div class="screener-view-toolbar">
+              <div class="screener-market-pill">${market.shortName.toUpperCase()}</div>
+              <div class="screener-view-tabs" id="screener-replica-view-tabs"></div>
+              <div class="screener-view-status">
+                <span id="screener-replica-current-rows">当前展示 0 行样本</span>
+                <span id="screener-replica-selected">已选 0</span>
+                <button class="screener-download-button" data-screener-action="download">下载</button>
+              </div>
+            </div>
+            <div id="screener-replica-custom-panel"></div>
+            <div id="screener-replica-table-panel"></div>
+          </article>
+
+          <div id="screener-replica-saved-panel"></div>
+        </section>
+      `
+    );
+
+    return marketId;
+  }
+
   function renderStockPage() {
     const stockId = safeStock(currentParams().get("stock"));
     const summary = summaryById[stockId];
@@ -2106,6 +3748,9 @@
     if (marketId) {
       bindMarketBoards(marketId);
     }
+  } else if (page === "jp-market-two") {
+    renderJpMarketTwoPage();
+    bindJpMarketTwoPage();
   } else if (page === "valuation") {
     const marketId = renderValuationPage();
     bindValuationPanel(marketId);
