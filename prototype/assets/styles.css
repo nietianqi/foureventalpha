@@ -2781,6 +2781,295 @@ body {
   min-height: 100%;
 }
 
+.jp-market-section,
+#jp-workspace,
+#jp-workspace .board-panel {
+  scroll-margin-top: 132px;
+}
+
+.jp-market-hero-grid {
+  grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
+  align-items: start;
+}
+
+.jp-market-hero-card,
+.jp-market-state-card,
+.jp-market-summary-card,
+.jp-market-preview-panel,
+.jp-market-overview-card,
+.jp-market-path-panel,
+.jp-market-next-panel {
+  min-height: 100%;
+}
+
+.jp-market-hero-note {
+  margin: 18px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.jp-market-state-card {
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, rgba(8, 17, 33, 0.98) 0%, rgba(13, 15, 19, 0.98) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.jp-market-state-card h3,
+.jp-market-state-card p {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.jp-market-state-card p {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.jp-market-state-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.jp-market-state-metric {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.jp-market-state-metric strong,
+.jp-market-state-metric span,
+.jp-market-state-metric em {
+  display: block;
+}
+
+.jp-market-state-metric strong {
+  color: #ffffff;
+  font-family: var(--heading-font);
+  font-size: 26px;
+  line-height: 1.08;
+}
+
+.jp-market-state-metric span,
+.jp-market-state-metric em {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.jp-market-state-metric span {
+  color: rgba(255, 255, 255, 0.64);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jp-market-state-metric em {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: normal;
+}
+
+.jp-market-state-notes,
+.jp-market-mini-points {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.jp-market-state-notes {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.jp-market-state-notes strong {
+  color: #ffffff;
+}
+
+.jp-market-state-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+}
+
+.jp-market-summary-grid {
+  margin-top: 18px;
+}
+
+.jp-market-summary-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.jp-market-summary-card.is-focus {
+  grid-column: span 2;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f5f8fd 100%);
+}
+
+.jp-market-summary-card.is-risk,
+.jp-market-preview-panel.is-risk,
+.jp-market-conclusion-card.is-danger {
+  border-color: rgba(185, 28, 28, 0.14);
+}
+
+.jp-market-summary-card.is-risk {
+  background: linear-gradient(180deg, rgba(185, 28, 28, 0.03) 0%, #ffffff 100%);
+}
+
+.jp-market-preview-grid {
+  align-items: start;
+}
+
+.jp-market-preview-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.jp-market-workspace-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+}
+
+.jp-market-anchor-wrap {
+  margin-top: 28px;
+}
+
+.jp-market-anchor {
+  position: sticky;
+  top: 92px;
+  z-index: 18;
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-sm);
+}
+
+.jp-market-anchor-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.jp-market-anchor-list::-webkit-scrollbar {
+  display: none;
+}
+
+.jp-market-anchor-link {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  background: #ffffff;
+  color: var(--muted-strong);
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.jp-market-anchor-link.is-active {
+  color: #ffffff;
+  background: var(--surface-dark);
+  border-color: var(--surface-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.jp-market-intro-grid,
+.jp-market-path-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.jp-market-overview-card,
+.jp-market-framework-panel,
+.jp-market-next-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.jp-market-quick-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.jp-market-quick-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--surface-3);
+  border: 1px solid rgba(29, 29, 31, 0.06);
+}
+
+.jp-market-quick-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--surface-dark);
+  font-family: var(--mono-font);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.jp-market-quick-step p {
+  margin: 4px 0 0;
+}
+
+.jp-market-mini-points {
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  color: var(--muted-strong);
+}
+
+.jp-market-mini-points strong {
+  color: var(--heading);
+}
+
+.jp-market-conclusion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.jp-market-conclusion-card.is-positive {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.jp-market-conclusion-card.is-danger {
+  background: linear-gradient(180deg, rgba(185, 28, 28, 0.04) 0%, #ffffff 100%);
+}
+
+.jp-market-warning-box {
+  margin-bottom: 18px;
+}
+
+.jp-market-tool-grid {
+  grid-template-columns: 1fr;
+  margin-top: 20px;
+}
+
 .us-market-section,
 #us-boards .board-panel {
   scroll-margin-top: 132px;
@@ -3111,11 +3400,15 @@ body {
 }
 
 @media (max-width: 1100px) {
+  .jp-market-hero-grid,
+  .jp-market-intro-grid,
+  .jp-market-path-grid,
   .us-market-hero-grid,
   .us-market-framework-grid {
     grid-template-columns: 1fr;
   }
 
+  .jp-market-conclusion-grid,
   .us-market-strategy-grid,
   .us-market-risk-grid,
   .us-market-focus-grid {
@@ -3135,6 +3428,8 @@ body {
 }
 
 @media (max-width: 820px) {
+  .jp-market-state-grid,
+  .jp-market-conclusion-grid,
   .us-market-quick-grid,
   .us-market-status-grid,
   .us-market-focus-grid,
@@ -3143,10 +3438,19 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .jp-market-anchor {
+    top: 84px;
+  }
+
+  .jp-market-summary-card.is-focus {
+    grid-column: span 1;
+  }
+
   .us-market-anchor {
     top: 84px;
   }
 
+  .jp-market-quick-step,
   .us-market-step,
   .us-market-focus-card {
     padding: 16px;

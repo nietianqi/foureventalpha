@@ -1690,7 +1690,7 @@ window.prototypeData = {};
   addValuation({ id: "val-24", stockId: "hk-bauhinia-utilities", presetIds: ["undervalued", "cashflow", "dividend", "trend-calm"], valuationBand: "fair-zone", sizeBucket: "mid-large", fairValueLow: "HKD 6.40", fairValueHigh: "HKD 6.80", marginOfSafety: "16%", marginValue: 16, qualityValue: 84, crowdingScore: 18, verdict: "分红型可守", note: "股息来源清楚，是港股里更安心的慢变量资产。" });
 
   data.jpMarketTwo = {
-    pageLabel: "Japan Stocks Framework / V2",
+    pageLabel: "Japan Market Playbook",
     title: "日本股票选股框架：该买什么，不该买什么",
     subtitle: "不是买最便宜的股票，而是买最有可能被市场重估的公司。",
     summary:
@@ -1705,6 +1705,14 @@ window.prototypeData = {};
       { value: "Standard ~50%", label: "开始响应 TSE 改革框架", note: "治理改善仍在扩散" },
       { value: "¥2.96T", label: "4 月初外资单周净买入日股", note: "资金回流仍支持重估叙事" },
       { value: "4 条主线", label: "治理、回报、龙头、催化", note: "先找会被重估的公司" }
+    ],
+    anchorNav: [
+      { id: "jp-conclusion", label: "结论", href: "#jp-conclusion" },
+      { id: "jp-buy-ideas", label: "可买思路", href: "#jp-buy-ideas" },
+      { id: "jp-avoid-ideas", label: "不能碰", href: "#jp-avoid-ideas" },
+      { id: "jp-framework", label: "框架图", href: "#jp-framework" },
+      { id: "jp-research", label: "研究队列", href: "#jp-research" },
+      { id: "jp-path", label: "实操路径", href: "#jp-path" }
     ],
     conclusions: [
       {
@@ -1816,7 +1824,7 @@ window.prototypeData = {};
         fit: "适合愿意跟公告和事件节奏的人。",
         mistake: "只赌消息，不验证事件后经营质量是否更好。",
         sampleStockIds: ["jp-tokai-holdings", "jp-mirai-rail"],
-        href: "market-jp-2.html#framework"
+        href: marketUrl("jp") + "#jp-framework"
       },
       {
         id: "trend-resonance",
@@ -1919,7 +1927,7 @@ window.prototypeData = {};
         pitfalls: ["把日元顺风误判成公司竞争力", "把指数强势误判成所有低估值都会涨"],
         links: [
           { label: "看趋势页", href: trendUrl("jp") },
-          { label: "看经典市场页", href: marketUrl("jp") }
+          { label: "看双榜执行区", href: marketUrl("jp") + "#jp-workspace" }
         ]
       },
       {
@@ -2029,7 +2037,7 @@ window.prototypeData = {};
         pitfalls: ["以为看对逻辑就不需要仓位纪律", "忽略汇率和决算前后对节奏的扰动"],
         links: [
           { label: "打开筛选器", href: screenerUrl("jp") },
-          { label: "回到经典页面", href: marketUrl("jp") }
+          { label: "回到双榜执行区", href: marketUrl("jp") + "#jp-workspace" }
         ]
       }
     ],
@@ -2118,9 +2126,9 @@ window.prototypeData = {};
         tone: "ghost"
       },
       {
-        title: "回到经典日股页",
-        description: "和当前工作区版本并排对照看。",
-        href: marketUrl("jp"),
+        title: "回到双榜执行区",
+        description: "回到上方机会榜 / 不能买榜，把方法框架落到样本比较。",
+        href: marketUrl("jp") + "#jp-workspace",
         tone: "secondary"
       }
     ]

@@ -2061,6 +2061,20 @@
       });
   }
 
+  const jpLegacyHashMap = {
+    "#buy-cases": "#jp-buy-ideas",
+    "#avoid-cases": "#jp-avoid-ideas",
+    "#framework": "#jp-framework"
+  };
+
+  function normalizeJpMarketHash(hash, fallback) {
+    if (!hash) {
+      return fallback || "";
+    }
+
+    return jpLegacyHashMap[hash] || hash;
+  }
+
   function handleLegacyMarketHash(marketId) {
     if (window.location.hash === "#valuation-board") {
       window.location.replace(`${valuationPageUrl(marketId, getValuationParams())}#valuation-board`);
@@ -2072,7 +2086,20 @@
       return true;
     }
 
+    if (marketId === "jp") {
+      const nextHash = normalizeJpMarketHash(window.location.hash);
+
+      if (nextHash && nextHash !== window.location.hash) {
+        window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+      }
+    }
+
     return false;
+  }
+
+  function redirectLegacyJpMarketTwoPage() {
+    const nextHash = normalizeJpMarketHash(window.location.hash, "#jp-conclusion");
+    window.location.replace(`${marketUrl("jp")}${window.location.search}${nextHash}`);
   }
 
   function renderTrendWatchlist(marketId) {
@@ -2610,6 +2637,378 @@
     return marketId;
   }
 
+  function renderJpMarketPage(marketId) {
+    const market = data.markets[marketId];
+    const pageData = data.jpMarketTwo;
+    const trend = trendByMarket[marketId];
+    const opportunityState = getBoardState("op", marketId);
+    const avoidState = getBoardState("av", marketId);
+    const opportunityCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "opportunity").length;
+    const avoidCount = data.rankingItems.filter((item) => item.market === marketId && item.type === "avoid").length;
+    const featuredWatchRows = market.opportunityStockIds.slice(0, 4).map(renderMarketWatchRow).join("");
+    const featuredSceneRows = market.avoidSceneIds.slice(0, 4).map((sceneId) => renderSceneSignalRow(sceneId, marketId)).join("");
+    const anchorNav = (pageData.anchorNav || [])
+      .map((item, index) => `<a class="jp-market-anchor-link${index === 0 ? " is-active" : ""}" data-jp-anchor-link="${item.id}" href="${item.href}">${item.label}</a>`)
+      .join("");
+    const nextActions = (pageData.ctas || [])
+      .map((item) => `
+        <a class="tool-card us-market-tool-card${item.tone === "primary" ? " is-primary" : item.tone === "secondary" ? " is-secondary" : ""}" href="${item.href}">
+          <strong>${item.title}</strong>
+          <span>${item.description}</span>
+        </a>
+      `)
+      .join("");
+    const defaultNode = pageData.frameworkNodes[0];
+
+    setTitle(`${market.name}`);
+    renderShell(
+      "market",
+      marketId,
+      `
+        <section class="section jp-market-section" id="jp-overview">
+          <div class="banner-grid jp-market-hero-grid">
+            <div class="banner-card jp-market-hero-card">
+              <div class="eyebrow">${market.name}</div>
+              <h1 class="page-title">${market.headline}</h1>
+              <p class="page-subtitle">${pageData.subtitle}</p>
+              <p class="jp-market-hero-note">${market.currentState}</p>
+              <div class="button-row">
+                <a class="button secondary" href="#opportunity-board">看机会榜</a>
+                <a class="button ghost" href="#avoid-board">看不能买榜</a>
+                <a class="button ghost" href="${screenerPageUrl(marketId)}">打开筛选器</a>
+                <a class="button primary" href="${valuationPageUrl(marketId, market.valuationDefaults)}">去合理估值页</a>
+                <a class="button ghost" href="${trendPageUrl(marketId)}">去趋势页</a>
+              </div>
+            </div>
+            <article class="section-panel jp-market-state-card">
+              <div class="pill-row">
+                ${pill(pageData.pageLabel, "dark")}
+                ${pill(`温度 ${trend.regime.temperature}/100`, "primary")}
+              </div>
+              <h3>${trend.regime.label}</h3>
+              <p>${trend.regime.summary}</p>
+              <div class="jp-market-state-grid">
+                ${pageData.stats.map((item) => `
+                  <div class="jp-market-state-metric">
+                    <strong>${item.value}</strong>
+                    <span>${item.label}</span>
+                    <em>${item.note}</em>
+                  </div>
+                `).join("")}
+              </div>
+              <div class="jp-market-state-notes">
+                <div><strong>顺风：</strong>${trend.leaders[0]}</div>
+                <div><strong>警惕：</strong>${trend.warnings[0]}</div>
+              </div>
+              <div class="jp-market-state-footer">
+                <span>公开机会 / 风险样本 ${opportunityCount} / ${avoidCount}</span>
+                <span>${market.fitStyle}</span>
+              </div>
+            </article>
+          </div>
+          <div class="market-summary-grid jp-market-summary-grid">
+            <article class="section-panel jp-market-summary-card is-focus">
+              ${pill("判断顺序", "dark")}
+              <h3>先看会不会被重估，再看它是不是便宜</h3>
+              <p>${market.methodSummary}</p>
+            </article>
+            <article class="section-panel jp-market-summary-card">
+              ${pill("合理估值", "neutral")}
+              <h3>估值先确认什么</h3>
+              <p>${market.valuationFocus}</p>
+            </article>
+            <article class="section-panel jp-market-summary-card">
+              ${pill("趋势确认", "neutral")}
+              <h3>趋势页先看什么</h3>
+              <p>${market.trendFocus}</p>
+            </article>
+            <article class="section-panel jp-market-summary-card is-risk">
+              ${pill("先排除", "danger")}
+              <h3>最怕哪类误判</h3>
+              <p>${market.pitfall}</p>
+              <div class="pill-row">
+                ${pill(trend.warnings[0], "warning")}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Preview</div>
+              <h2>先看代表样本和风险预览</h2>
+              <p>首屏先把当前值得继续跟踪的日股样本与最常见的踩坑场景并排摆出来，先建立方向感，再决定是否进入双榜和方法区。</p>
+            </div>
+          </div>
+          <div class="market-desk-grid jp-market-preview-grid">
+            <article class="section-panel jp-market-preview-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">代表样本</strong>
+                  <p>优先跟踪治理改善、股东回报兑现和业绩上修继续成立的公开样本。</p>
+                </div>
+                <a class="button ghost subtle" href="#opportunity-board">去机会榜</a>
+              </div>
+              <div class="watch-list">
+                ${featuredWatchRows}
+              </div>
+            </article>
+            <article class="section-panel jp-market-preview-panel is-risk">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">风险预览</strong>
+                  <p>先排除价值陷阱、高股息陷阱和治理口惠实不至，再回来看赔率。</p>
+                </div>
+                <a class="button warning subtle" href="#avoid-board">去不能买榜</a>
+              </div>
+              <div class="read-list">
+                ${featuredSceneRows}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="jp-workspace">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Workspace</div>
+              <h2>双榜执行区</h2>
+              <p>保持现有机会榜 / 不能买榜并列工作台，让你先做执行比较，再带着问题进入下方方法区深读。</p>
+            </div>
+          </div>
+          <div class="filter-panel board-hub jp-market-workspace-panel">
+            <div class="workspace-head">
+              <strong>先比较样本，再回头看方法</strong>
+              <span>左边找有机会被重估的方向，右边先把不该碰的坑位排掉；现有 query 深链和双榜筛选继续保留。</span>
+            </div>
+            <div class="board-grid">
+              ${renderBoardPanel("opportunity", marketId, opportunityState)}
+              ${renderBoardPanel("avoid", marketId, avoidState)}
+            </div>
+          </div>
+        </section>
+
+        <section class="section jp-market-anchor-wrap">
+          <nav class="jp-market-anchor" aria-label="日本市场页导航">
+            <div class="jp-market-anchor-list">
+              ${anchorNav}
+            </div>
+          </nav>
+        </section>
+
+        <section class="section jp-market-section" id="jp-conclusion" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Conclusion</div>
+              <h2>一句话先给结论</h2>
+              <p>日本市场最核心的不是“便不便宜”，而是“便宜背后有没有治理改善、回报兑现和明确催化”。</p>
+            </div>
+          </div>
+          <div class="jp-market-intro-grid">
+            <article class="section-panel jp-market-overview-card">
+              <div class="pill-row">
+                ${pill(pageData.pageLabel, "dark")}
+                ${pill("先收窄方向", "neutral")}
+              </div>
+              <h3>${pageData.title}</h3>
+              <p>${pageData.summary}</p>
+              <div class="jp-market-quick-list">
+                ${pageData.quickUse.map((item, index) => `
+                  <div class="jp-market-quick-step">
+                    <span class="jp-market-quick-index">0${index + 1}</span>
+                    <p>${item}</p>
+                  </div>
+                `).join("")}
+              </div>
+            </article>
+            <article class="section-panel jp-market-overview-card jp-market-overview-side">
+              <div class="pill-row">
+                ${pill("市场镜头", "primary")}
+                ${pill(market.shortName, "neutral")}
+              </div>
+              <h3>先看慢变量，再决定执行节奏</h3>
+              <p>${market.intro}</p>
+              <div class="jp-market-mini-points">
+                <div><strong>主线：</strong>${trend.leaders[0]}</div>
+                <div><strong>复核：</strong>${trend.warnings[0]}</div>
+                <div><strong>样本数：</strong>机会 ${opportunityCount} / 风险 ${avoidCount}</div>
+              </div>
+            </article>
+          </div>
+          <div class="jp-market-conclusion-grid">
+            ${pageData.conclusions.map((item) => `
+              <article class="section-panel jp-market-conclusion-card ${item.id === "avoid" ? "is-danger" : "is-positive"}">
+                <div class="pill-row">
+                  ${pill(item.title, item.tone)}
+                  ${pill(item.id === "avoid" ? "先排除" : "先研究", "neutral")}
+                </div>
+                <h3>${item.title}</h3>
+                <p>${item.summary}</p>
+                <ul class="list-bullets jp2-list">
+                  ${item.items.map((entry) => `<li>${entry}</li>`).join("")}
+                </ul>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Drivers</div>
+              <h2>日本市场主线为什么成立</h2>
+              <p>把日本市场最重要的重估逻辑压缩成三个驱动块，方便你先建立判断框架，再往下看可买与不能碰的类型。</p>
+            </div>
+          </div>
+          <div class="market-grid jp2-driver-grid">
+            ${pageData.drivers.map((item) => `
+              <article class="card jp2-driver-card">
+                ${pill(item.tag, "primary")}
+                <h3>${item.title}</h3>
+                <p>${item.summary}</p>
+                <ul class="list-bullets jp2-list">
+                  ${item.bullets.map((entry) => `<li>${entry}</li>`).join("")}
+                </ul>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section jp-market-section" id="jp-buy-ideas" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Buy Ideas</div>
+              <h2>可以继续研究的 6 条思路</h2>
+              <p>每一类都说明为什么在日本有效、要看什么、最容易误判什么，以及该跳去哪个现有工具继续验证。</p>
+            </div>
+          </div>
+          <div class="market-grid jp2-idea-grid">
+            ${pageData.buyIdeas.map((item) => renderJpMarketTwoIdeaCard(item, "primary")).join("")}
+          </div>
+        </section>
+
+        <section class="section jp-market-section" id="jp-avoid-ideas" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Avoid Ideas</div>
+              <h2>先排掉这 6 类坑</h2>
+              <p>日股最容易亏钱的，不是没找到便宜股，而是把不该碰的低质量样本误判成价值机会。</p>
+            </div>
+          </div>
+          <div class="warning-box jp-market-warning-box">
+            <div class="pill-row">
+              ${pill("先排坑再研究", "danger")}
+              ${pill("便宜不等于值得买", "warning")}
+            </div>
+            <p>如果下面的风险类型已经成立，应该先回到不能买榜、趋势页或估值页复核，而不是继续为低估值找理由。</p>
+          </div>
+          <div class="market-grid jp2-idea-grid">
+            ${pageData.avoidIdeas.map((item) => renderJpMarketTwoIdeaCard(item, "danger")).join("")}
+          </div>
+        </section>
+
+        <section class="section jp-market-section" id="jp-framework" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Framework</div>
+              <h2>交互式框架图</h2>
+              <p>从宏观、板块、因子、基本面、催化到风控，点左侧节点，右侧就切到对应的买点逻辑和回避逻辑。</p>
+            </div>
+          </div>
+          <div class="jp2-framework-grid">
+            <article class="section-panel jp2-framework-map-panel">
+              <div class="panel-head">
+                <div>
+                  <strong class="panel-title">从大范围样本收敛到研究队列</strong>
+                  <p>先缩小研究范围，再做基本面和事件确认，最后才是买点与仓位。</p>
+                </div>
+              </div>
+              <div class="jp2-node-grid">
+                ${pageData.frameworkNodes.map((item, index) => `
+                  <button class="jp2-node-button${index === 0 ? " is-active" : ""}" type="button" data-framework-node="${item.id}">
+                    <span class="jp2-node-step">${item.step}</span>
+                    <strong>${item.title}</strong>
+                    <span>${item.summary}</span>
+                  </button>
+                `).join("")}
+              </div>
+            </article>
+            <article class="section-panel jp2-framework-panel jp-market-framework-panel" id="jp-framework-panel">
+              ${renderJpMarketTwoFrameworkPanel(defaultNode)}
+            </article>
+          </div>
+        </section>
+
+        <section class="section jp-market-section" id="jp-research" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Research Queue</div>
+              <h2>从框架到样本：先研究哪几只</h2>
+              <p>这不是推荐名单，而是把上面的判断框架收敛成更适合继续深挖的研究队列。</p>
+            </div>
+          </div>
+          <div class="section-panel jp2-candidate-panel">
+            <div class="jp2-candidate-table-wrap">
+              <table class="jp2-candidate-table">
+                <thead>
+                  <tr>
+                    <th>公司</th>
+                    <th>归属思路</th>
+                    <th>关键催化</th>
+                    <th>主要风险</th>
+                    <th>下一步</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageData.researchCandidates.map(renderJpMarketTwoResearchRow).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="section jp-market-section" id="jp-path" data-jp-anchor-target>
+          <div class="section-head">
+            <div>
+              <div class="section-marker">Path</div>
+              <h2>实操路径与下一步</h2>
+              <p>看完框架之后，直接按步骤收敛研究对象，再回到筛选器、趋势页和双榜执行区继续判断。</p>
+            </div>
+          </div>
+          <div class="jp-market-path-grid">
+            <article class="section-panel jp-market-path-panel">
+              <div class="jp2-step-list">
+                ${pageData.practicalSteps.map((item) => `
+                  <div class="jp2-step">
+                    <span class="jp2-step-index">${item.step}</span>
+                    <div>
+                      <strong>${item.title}</strong>
+                      <p>${item.description}</p>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </article>
+            <article class="section-panel jp-market-next-panel">
+              <div class="pill-row">
+                ${pill("Next Step", "primary")}
+                ${pill("继续执行", "neutral")}
+              </div>
+              <h3>把框架落回工具页和样本页</h3>
+              <p>方法区解决的是“为什么看”，下一步要回到工作台解决“先看谁、先排谁、去哪一页验证”。</p>
+              <div class="tool-grid jp-market-tool-grid">
+                ${nextActions}
+              </div>
+            </article>
+          </div>
+        </section>
+      `
+    );
+
+    return marketId;
+  }
+
   function renderMarketPage() {
     const marketId = safeMarket(document.body.dataset.market);
     if (handleLegacyMarketHash(marketId)) {
@@ -2618,6 +3017,10 @@
 
     if (marketId === "us") {
       return renderUsMarketPage(marketId);
+    }
+
+    if (marketId === "jp") {
+      return renderJpMarketPage(marketId);
     }
 
     const market = data.markets[marketId];
@@ -3100,6 +3503,68 @@
 
     renderBoard("op");
     renderBoard("av");
+  }
+
+  function bindJpMarketPage() {
+    bindJpMarketTwoPage();
+
+    const navLinks = Array.from(app.querySelectorAll("[data-jp-anchor-link]"));
+    const sections = Array.from(app.querySelectorAll("[data-jp-anchor-target]"));
+
+    if (!navLinks.length || !sections.length) {
+      return;
+    }
+
+    const linkById = Object.fromEntries(navLinks.map((link) => [link.dataset.jpAnchorLink, link]));
+    const observer = "IntersectionObserver" in window
+      ? new IntersectionObserver(
+        (entries) => {
+          const visibleEntry = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
+
+          if (visibleEntry) {
+            setActive(visibleEntry.target.id);
+          }
+        },
+        { rootMargin: "-28% 0px -55% 0px", threshold: [0.18, 0.4, 0.65] }
+      )
+      : null;
+
+    function setActive(activeId) {
+      navLinks.forEach((link) => {
+        link.classList.toggle("is-active", link.dataset.jpAnchorLink === activeId);
+      });
+    }
+
+    function normalizeHash(hash) {
+      const targetId = normalizeJpMarketHash(hash).replace("#", "");
+      return linkById[targetId] ? targetId : sections[0].id;
+    }
+
+    navLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const href = link.getAttribute("href");
+        const target = href ? document.querySelector(href) : null;
+
+        if (!target) {
+          return;
+        }
+
+        event.preventDefault();
+        window.history.pushState({}, "", `${window.location.pathname}${window.location.search}${href}`);
+        target.scrollIntoView({ block: "start", behavior: "smooth" });
+        setActive(link.dataset.jpAnchorLink);
+      });
+    });
+
+    sections.forEach((section) => observer && observer.observe(section));
+
+    window.addEventListener("hashchange", () => {
+      setActive(normalizeHash(window.location.hash));
+    });
+
+    setActive(normalizeHash(window.location.hash));
   }
 
   function bindUsMarketPage() {
@@ -4138,11 +4603,13 @@
       bindMarketBoards(marketId);
       if (marketId === "us") {
         bindUsMarketPage();
+      } else if (marketId === "jp") {
+        bindJpMarketPage();
       }
     }
   } else if (page === "jp-market-two") {
-    renderJpMarketTwoPage();
-    bindJpMarketTwoPage();
+    redirectLegacyJpMarketTwoPage();
+    return;
   } else if (page === "valuation") {
     const marketId = renderValuationPage();
     bindValuationPanel(marketId);
